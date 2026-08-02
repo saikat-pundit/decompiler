@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 XAPK Rebuilder - Repackages decompiled APK(s) back into XAPK
-Handles single APK, split APK, and missing apktool.yml automatically
+Handles single APK, split APK, and subfolder structures
 """
 
 import os
@@ -40,7 +40,8 @@ class XAPKRebuilder:
             "has_obb": False,
             "package_name": "unknown",
             "version_code": "1",
-            "version_name": "1.0"
+            "version_name": "1.0",
+            "decompiled_dirs": []
         }
     
     def _setup_logging(self):
@@ -113,8 +114,35 @@ class XAPKRebuilder:
         
         return True
     
+    def find_decompiled_dirs(self) -> List[Path]:
+        """Find all valid decompiled directories (containing AndroidManifest.xml)"""
+        self.logger.info("🔍 Finding decompiled directories...")
+        
+        valid_dirs = []
+        
+        # Check root decompiled directory
+        if (self.decompiled_dir / "AndroidManifest.xml").exists():
+            valid_dirs.append(self.decompiled_dir)
+            self.logger.info(f"  ✅ Found root decompiled dir: {self.decompiled_dir}")
+        
+        # Check subdirectories
+        for item in self.decompiled_dir.iterdir():
+            if item.is_dir():
+                if (item / "AndroidManifest.xml").exists():
+                    valid_dirs.append(item)
+                    self.logger.info(f"  ✅ Found decompiled subdir: {item.name}")
+        
+        if not valid_dirs:
+            self.logger.error("❌ No AndroidManifest.xml found anywhere in decompiled directory!")
+            self.logger.info("📂 Contents of decompiled:")
+            for item in self.decompiled_dir.iterdir():
+                self.logger.info(f"  - {item.name}")
+        
+        self.build_info["decompiled_dirs"] = valid_dirs
+        return valid_dirs
+    
     def validate_structure(self) -> bool:
-        """Validate the decompiled directory structure"""
+        """Validate and detect the decompiled structure"""
         self.logger.info("🔍 Validating decompiled structure...")
         
         if not self.decompiled_dir.exists():
@@ -123,26 +151,24 @@ class XAPKRebuilder:
         
         self.logger.info(f"📂 Checking: {self.decompiled_dir}")
         
-        # Check for AndroidManifest.xml
-        manifest_path = self.decompiled_dir / "AndroidManifest.xml"
-        if not manifest_path.exists():
-            self.logger.error("❌ AndroidManifest.xml not found!")
+        # Find all decompiled directories
+        decompiled_dirs = self.find_decompiled_dirs()
+        
+        if not decompiled_dirs:
+            self.logger.error("❌ No valid decompiled directories found!")
             return False
-        self.logger.info("✅ AndroidManifest.xml found")
         
-        # Extract package info
-        self._extract_package_info(manifest_path)
-        
-        # Check for apktool.yml - create if missing
-        apktool_yml = self.decompiled_dir / "apktool.yml"
-        if not apktool_yml.exists():
-            self.logger.warning("⚠️ apktool.yml not found! Creating it...")
-            self._create_apktool_yml()
+        # Detect structure type
+        if len(decompiled_dirs) > 1:
+            self.build_info["has_splits"] = True
+            self.logger.info(f"🔄 Split APK structure detected ({len(decompiled_dirs)} APKs)")
         else:
-            self.logger.info("✅ apktool.yml found")
+            self.logger.info("📱 Single APK structure detected")
         
-        # Check structure type
-        self._detect_structure_type()
+        # Extract package info from the first valid dir
+        first_dir = decompiled_dirs[0]
+        manifest_path = first_dir / "AndroidManifest.xml"
+        self._extract_package_info(manifest_path)
         
         return True
     
@@ -152,7 +178,6 @@ class XAPKRebuilder:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Extract package name
             import re
             package_match = re.search(r'package="([^"]+)"', content)
             if package_match:
@@ -172,9 +197,20 @@ class XAPKRebuilder:
         except Exception as e:
             self.logger.warning(f"⚠️ Could not extract package info: {e}")
     
-    def _create_apktool_yml(self):
-        """Create apktool.yml from AndroidManifest.xml"""
-        manifest_path = self.decompiled_dir / "AndroidManifest.xml"
+    def ensure_apktool_yml(self, decompiled_dir: Path) -> bool:
+        """Ensure apktool.yml exists, create if missing"""
+        apktool_yml = decompiled_dir / "apktool.yml"
+        
+        if apktool_yml.exists():
+            self.logger.info(f"  ✅ apktool.yml found in {decompiled_dir.name}")
+            return True
+        
+        self.logger.warning(f"  ⚠️ apktool.yml missing in {decompiled_dir.name}, creating...")
+        
+        manifest_path = decompiled_dir / "AndroidManifest.xml"
+        if not manifest_path.exists():
+            self.logger.error(f"  ❌ No AndroidManifest.xml in {decompiled_dir.name}")
+            return False
         
         try:
             with open(manifest_path, 'r', encoding='utf-8') as f:
@@ -185,7 +221,7 @@ class XAPKRebuilder:
             target_sdk = re.search(r'targetSdkVersion="([^"]+)"', content)
             
             apktool_yml_content = f"""version: 2.0.0
-apkFileName: app.apk
+apkFileName: {decompiled_dir.name}.apk
 isFrameworkApk: false
 usesFramework:
   ids:
@@ -205,162 +241,64 @@ unknownFiles: {{}}
 doNotCompress: null
 """
             
-            apktool_yml_path = self.decompiled_dir / "apktool.yml"
-            with open(apktool_yml_path, 'w', encoding='utf-8') as f:
+            with open(apktool_yml, 'w', encoding='utf-8') as f:
                 f.write(apktool_yml_content)
             
-            self.logger.info("✅ apktool.yml created successfully!")
+            self.logger.info(f"  ✅ apktool.yml created in {decompiled_dir.name}")
+            return True
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to create apktool.yml: {e}")
-    
-    def _detect_structure_type(self):
-        """Detect if this is a split APK structure"""
-        # Check for splits directory
-        splits_dir = self.decompiled_dir / "splits"
-        if splits_dir.exists() and any(splits_dir.iterdir()):
-            self.build_info["has_splits"] = True
-            self.logger.info("🔄 Split APK structure detected (splits/)")
-            return
-        
-        # Check for split_* directories
-        split_dirs = list(self.decompiled_dir.glob("split_*"))
-        if split_dirs:
-            self.build_info["has_splits"] = True
-            self.logger.info(f"🔄 Split APK structure detected ({len(split_dirs)} splits)")
-            return
-        
-        # Check for architecture-specific libs
-        lib_dir = self.decompiled_dir / "lib"
-        if lib_dir.exists():
-            archs = [d.name for d in lib_dir.iterdir() if d.is_dir()]
-            if len(archs) > 1:
-                self.logger.info(f"📚 Multi-architecture libraries found: {', '.join(archs)}")
-            elif len(archs) == 1:
-                self.logger.info(f"📚 Single architecture: {archs[0]}")
-            else:
-                self.logger.info("ℹ️ No native libraries found")
-        
-        self.logger.info("📱 Single APK structure detected")
+            self.logger.error(f"  ❌ Failed to create apktool.yml: {e}")
+            return False
     
     def repackage_apks(self) -> bool:
-        """Repackage all APKs in the decompiled structure"""
+        """Repackage all APKs from decompiled directories"""
         self.logger.info("📦 Repackaging APKs...")
         
         # Clean build directory
         shutil.rmtree(self.xapk_build_dir, ignore_errors=True)
         self.xapk_build_dir.mkdir(parents=True, exist_ok=True)
         
-        if self.build_info["has_splits"]:
-            return self._repackage_splits()
-        else:
-            return self._repackage_single()
-    
-    def _repackage_single(self) -> bool:
-        """Repackage a single APK"""
-        self.logger.info("📦 Repackaging single APK...")
+        decompiled_dirs = self.build_info["decompiled_dirs"]
         
-        apktool_yml = self.decompiled_dir / "apktool.yml"
-        if not apktool_yml.exists():
-            self.logger.error("❌ apktool.yml not found!")
+        if len(decompiled_dirs) == 0:
+            self.logger.error("❌ No decompiled directories to repackage!")
             return False
-        
-        cmd = [
-            'apktool', 'b',
-            str(self.decompiled_dir),
-            '-o',
-            str(self.xapk_build_dir / 'base.apk')
-        ]
-        
-        success, output = self._run_command(cmd, "Repackaging APK")
-        
-        if success:
-            self.build_info["apks_repackaged"].append("base.apk")
-            self.logger.info("✅ Single APK repackaged successfully")
-            return True
-        else:
-            self.logger.error("❌ Failed to repackage APK")
-            return False
-    
-    def _repackage_splits(self) -> bool:
-        """Repackage split APKs"""
-        self.logger.info("📦 Repackaging split APKs...")
         
         success_count = 0
-        total_count = 0
         
-        # Check for splits directory
-        splits_dir = self.decompiled_dir / "splits"
-        if splits_dir.exists():
-            for split_dir in splits_dir.iterdir():
-                if split_dir.is_dir():
-                    total_count += 1
-                    split_name = split_dir.name
-                    self.logger.info(f"  📦 Repackaging split: {split_name}")
-                    
-                    # Check for apktool.yml
-                    if not (split_dir / "apktool.yml").exists():
-                        self.logger.warning(f"  ⚠️ Skipping {split_name} (no apktool.yml)")
-                        continue
-                    
-                    cmd = [
-                        'apktool', 'b',
-                        str(split_dir),
-                        '-o',
-                        str(self.xapk_build_dir / f'{split_name}.apk')
-                    ]
-                    
-                    success, output = self._run_command(cmd, f"Repackaging {split_name}")
-                    
-                    if success:
-                        self.build_info["apks_repackaged"].append(f"{split_name}.apk")
-                        success_count += 1
-                    else:
-                        self.build_info["apks_failed"].append(split_name)
+        for dir_path in decompiled_dirs:
+            dir_name = dir_path.name
             
-            # Repackage base
-            if (self.decompiled_dir / "apktool.yml").exists():
-                self.logger.info("  📦 Repackaging base APK")
-                cmd = [
-                    'apktool', 'b',
-                    str(self.decompiled_dir),
-                    '-o',
-                    str(self.xapk_build_dir / 'base.apk')
-                ]
-                success, output = self._run_command(cmd, "Repackaging base")
-                if success:
-                    self.build_info["apks_repackaged"].append("base.apk")
-                    success_count += 1
+            # Ensure apktool.yml exists
+            if not self.ensure_apktool_yml(dir_path):
+                self.build_info["apks_failed"].append(dir_name)
+                continue
+            
+            # Determine output name
+            if dir_name == self.decompiled_dir.name:
+                output_name = "base.apk"
+            else:
+                output_name = f"{dir_name}.apk"
+            
+            self.logger.info(f"  📦 Repackaging: {dir_name} -> {output_name}")
+            
+            cmd = [
+                'apktool', 'b',
+                str(dir_path),
+                '-o',
+                str(self.xapk_build_dir / output_name)
+            ]
+            
+            success, output = self._run_command(cmd, f"Repackaging {dir_name}")
+            
+            if success:
+                self.build_info["apks_repackaged"].append(output_name)
+                success_count += 1
+            else:
+                self.build_info["apks_failed"].append(dir_name)
         
-        # Check for split_* directories
-        split_dirs = list(self.decompiled_dir.glob("split_*"))
-        if split_dirs:
-            for split_dir in split_dirs:
-                if split_dir.is_dir():
-                    total_count += 1
-                    split_name = split_dir.name
-                    self.logger.info(f"  📦 Repackaging split: {split_name}")
-                    
-                    if not (split_dir / "apktool.yml").exists():
-                        self.logger.warning(f"  ⚠️ Skipping {split_name} (no apktool.yml)")
-                        continue
-                    
-                    cmd = [
-                        'apktool', 'b',
-                        str(split_dir),
-                        '-o',
-                        str(self.xapk_build_dir / f'{split_name}.apk')
-                    ]
-                    
-                    success, output = self._run_command(cmd, f"Repackaging {split_name}")
-                    
-                    if success:
-                        self.build_info["apks_repackaged"].append(f"{split_name}.apk")
-                        success_count += 1
-                    else:
-                        self.build_info["apks_failed"].append(split_name)
-        
-        self.logger.info(f"✅ Repackaged {success_count}/{total_count} splits")
+        self.logger.info(f"✅ Repackaged {success_count}/{len(decompiled_dirs)} APKs")
         return success_count > 0
     
     def sign_apks(self) -> bool:
@@ -392,9 +330,11 @@ doNotCompress: null
             success, output = self._run_command(cmd, f"Signing {apk.name}")
             if success:
                 success_count += 1
+            else:
+                self.logger.warning(f"  ⚠️ Failed to sign {apk.name}")
         
         self.logger.info(f"✅ Signed {success_count}/{len(apks)} APKs")
-        return success_count == len(apks)
+        return success_count > 0
     
     def _generate_keystore(self, keystore_path: Path):
         """Generate debug keystore"""
@@ -421,14 +361,14 @@ doNotCompress: null
         
         manifest_data = {
             "package": self.build_info["package_name"],
-            "version_code": int(self.build_info["version_code"]),
+            "version_code": int(self.build_info["version_code"]) if self.build_info["version_code"].isdigit() else 1,
             "version_name": self.build_info["version_name"],
             "splits": [],
             "obb": []
         }
         
-        # Add splits
-        apks = list(self.xapk_build_dir.glob("*.apk"))
+        # Add splits (all APKs except base)
+        apks = sorted(list(self.xapk_build_dir.glob("*.apk")))
         for apk in apks:
             if apk.name != "base.apk":
                 manifest_data["splits"].append(apk.name)
@@ -487,8 +427,10 @@ doNotCompress: null
             with zipfile.ZipFile(xapk_name, 'r') as zipf:
                 contents = zipf.namelist()
                 self.logger.info(f"📂 XAPK contains {len(contents)} files:")
-                for f in sorted(contents):
+                for f in sorted(contents)[:10]:  # Show first 10
                     self.logger.info(f"  - {f}")
+                if len(contents) > 10:
+                    self.logger.info(f"  ... and {len(contents) - 10} more")
                 
                 # Check for manifest
                 if "manifest.json" in contents:
@@ -530,11 +472,27 @@ doNotCompress: null
         self.logger.info(f"📊 Summary saved: {summary_file}")
         return summary
     
+    def list_decompiled_contents(self) -> None:
+        """List contents of decompiled directory for debugging"""
+        self.logger.info("📂 Contents of decompiled directory:")
+        for root, dirs, files in os.walk(self.decompiled_dir, topdown=True):
+            level = root.replace(str(self.decompiled_dir), '').count(os.sep)
+            indent = '  ' * level
+            self.logger.info(f"{indent}📁 {Path(root).name}/")
+            sub_indent = '  ' * (level + 1)
+            for file in files[:5]:  # Show first 5 files
+                self.logger.info(f"{sub_indent}📄 {file}")
+            if len(files) > 5:
+                self.logger.info(f"{sub_indent}... and {len(files) - 5} more")
+    
     def run_full_pipeline(self, xapk_name: str = "modded_app.xapk") -> bool:
         """Run the complete XAPK rebuild pipeline"""
         self.logger.info("=" * 50)
         self.logger.info("🚀 Starting XAPK Rebuild Pipeline")
         self.logger.info("=" * 50)
+        
+        # List contents for debugging
+        self.list_decompiled_contents()
         
         # Step 1: Check dependencies
         if not self.check_dependencies():
@@ -579,6 +537,9 @@ doNotCompress: null
         self.logger.info(f"📊 Status: {'✅ Success' if summary['success'] else '⚠️ Partial Success'}")
         self.logger.info(f"📱 Package: {summary['package']}")
         self.logger.info(f"📚 APKs: {len(summary['apks_repackaged'])} repackaged")
+        
+        if summary['apks_failed']:
+            self.logger.warning(f"⚠️ Failed APKs: {', '.join(summary['apks_failed'])}")
         
         return summary['success']
 
