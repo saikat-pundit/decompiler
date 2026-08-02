@@ -1,130 +1,112 @@
 name: APK Modding Pipeline
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   mod-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to push back to repo
     
     steps:
+      # 1. Checkout your repository
       - name: Checkout code
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0  # Get full history for committing
+          
+      # 2. Setup Java (required for Apktool)
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           
-      # === FIXED: Install Apktool with version detection ===
+      # 3. Install Apktool (FIXED VERSION)
       - name: Install Apktool
         run: |
-          # Download the wrapper script
-          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-          sudo chmod +x /usr/local/bin/apktool
-          
-          # Get the LATEST release version dynamically
+          # Get the actual latest version
           LATEST_VERSION=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | grep -oP '"tag_name": "\K(.*?)(?=")')
           echo "Latest Apktool version: $LATEST_VERSION"
           
-          # Download the correct JAR
-          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/$LATEST_VERSION/apktool.jar
-          sudo chmod +x /usr/local/bin/apktool.jar
+          # Download the wrapper script
+          wget https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          chmod +x apktool
           
-          # Test installation
+          # Download the actual jar file with correct version
+          wget https://github.com/iBotPeaches/Apktool/releases/download/${LATEST_VERSION}/apktool.jar
+          
+          # Move to system path
+          sudo mv apktool apktool.jar /usr/local/bin/
+          
+          # Verify installation
           apktool --version
           
-      # === FIXED: Install zipalign and apksigner from Android SDK ===
+      # 4. Install Android SDK tools (zipalign + apksigner)
       - name: Install Android SDK Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
+          sudo apt-get install -y android-sdk
+          echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
           
-          # Download command-line tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip commandlinetools-linux-*.zip
-          mkdir -p android-sdk/cmdline-tools
-          mv cmdline-tools android-sdk/cmdline-tools/latest
-          
-          # Set environment
-          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          
-          # Accept licenses
-          yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          
-          # Install build-tools (includes zipalign and apksigner)
-          android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" > /dev/null 2>&1
-          
-          # Add to PATH
-          echo "$PWD/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
-          
-      # === DECOMPILE ===
+      # 5. DECOMPILE: Extract APK completely
       - name: Decompile APK
         run: |
           # Check if APK exists
           if [ ! -f "my.apk" ]; then
-            echo "❌ Error: my.apk not found in root directory!"
+            echo "❌ ERROR: my.apk not found in root directory!"
             exit 1
           fi
           
-          # Clean previous decompile if exists
+          # Remove old decompiled folder if exists
           rm -rf decompiled
           
-          # Decompile with verbose output
+          # Decompile
           apktool d my.apk -o decompiled -f
-          echo "✅ APK decompiled successfully"
-          echo "📁 Files extracted: $(find decompiled -type f | wc -l) files"
+          echo "✅ APK decompiled successfully to ./decompiled/"
           
-      # === MAKE YOUR EDITS ===
+          # Show structure
+          echo "📁 Decompiled structure:"
+          ls -la decompiled/
+          
+      # 6. YOUR EDITING PHASE - Modify files here
       - name: Apply modifications
         run: |
-          echo "📝 Starting modifications..."
+          echo "📝 Applying modifications..."
           
-          # === ADD YOUR CUSTOM EDITS BELOW ===
+          # === ADD YOUR MODIFICATIONS HERE ===
           
-          # Example 1: Show current app name from manifest
-          echo "Current app name:"
-          grep -o 'android:label="[^"]*"' decompiled/AndroidManifest.xml | head -1 || echo "Not found"
+          # Example 1: Remove a permission from AndroidManifest.xml
+          # sed -i '/<uses-permission android:name="android.permission.READ_CONTACTS"\/>/d' decompiled/AndroidManifest.xml
           
-          # Example 2: Change app label (uncomment to use)
-          # sed -i 's/android:label="[^"]*"/android:label="My Modded App"/' decompiled/AndroidManifest.xml
+          # Example 2: Change app name in strings.xml
+          # sed -i 's/My App/My Modded App/g' decompiled/res/values/strings.xml
           
-          # Example 3: Remove a permission (uncomment and modify)
-          # sed -i '/<uses-permission android:name="android.permission.INTERNET"\/>/d' decompiled/AndroidManifest.xml
+          # Example 3: Modify Smali code (change a condition)
+          # sed -i 's/if-eqz v0, :cond_0/if-nez v0, :cond_0/g' decompiled/smali/com/example/MainActivity.smali
           
-          # Example 4: Modify a Smali file (uncomment and adjust path)
-          # if [ -f "decompiled/smali/com/example/MainActivity.smali" ]; then
-          #   sed -i 's/const\/4 v0, 0x1/const\/4 v0, 0x0/g' decompiled/smali/com/example/MainActivity.smali
-          #   echo "✅ Modified MainActivity.smali"
-          # fi
+          # Example 4: Replace a resource file
+          # cp my_custom_icon.png decompiled/res/drawable/icon.png
           
-          # Example 5: Replace a resource (uncomment)
-          # cp your_custom_file.png decompiled/res/drawable/
+          echo "✅ Modifications applied successfully"
           
-          echo "✅ Modifications complete"
-          
-          # Show what was modified
-          echo "📂 Modified files in last 5 minutes:"
-          find decompiled -type f -mmin -5 2>/dev/null | head -20 || echo "No recent modifications"
-          
-      # === REPACKAGE ===
+      # 7. REPACKAGE: Rebuild APK
       - name: Repackage APK
         run: |
           apktool b decompiled -o my_app_unsigned.apk
           echo "✅ APK repackaged successfully"
-          ls -lh my_app_unsigned.apk
           
-      # === ALIGN ===
+      # 8. ALIGN: Optimize APK structure
       - name: Align APK
         run: |
           zipalign -v -p 4 my_app_unsigned.apk my_app_aligned.apk
-          echo "✅ APK aligned"
+          echo "✅ APK aligned successfully"
           
-      # === SIGN ===
-      - name: Generate Keystore
+      # 9. SIGN: Generate keystore and sign APK
+      - name: Sign APK
         run: |
+          # Generate a debug keystore
           keytool -genkey -v -keystore debug.keystore \
             -alias debug \
             -keyalg RSA \
@@ -132,30 +114,26 @@ jobs:
             -validity 10000 \
             -storepass android \
             -keypass android \
-            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
-          echo "✅ Keystore generated"
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US" \
+            -noprompt
           
-      - name: Sign APK
-        run: |
-          # Try v2 signing first, fallback to v1 only
+          # Sign the APK
           apksigner sign \
             --ks debug.keystore \
             --ks-key-alias debug \
             --ks-pass pass:android \
             --key-pass pass:android \
-            --v1-signing-enabled true \
-            --v2-signing-enabled true \
-            --v3-signing-enabled true \
             my_app_aligned.apk
-          echo "✅ APK signed"
           
-      # === VERIFY ===
-      - name: Verify APK
+          echo "✅ APK signed successfully"
+          
+      # 10. Verify the signed APK
+      - name: Verify APK signature
         run: |
-          apksigner verify --verbose my_app_aligned.apk
-          echo "✅ Verification passed"
+          apksigner verify my_app_aligned.apk
+          echo "✅ APK verification passed"
           
-      # === UPLOAD ===
+      # 11. Upload final APK as artifact
       - name: Upload modded APK
         uses: actions/upload-artifact@v4
         with:
@@ -163,14 +141,55 @@ jobs:
           path: my_app_aligned.apk
           retention-days: 30
           
-      # === SUMMARY ===
-      - name: Show summary
+      # 12. UPLOAD DECOMPILED FILES BACK TO REPO
+      - name: Upload decompiled files to repository
         run: |
-          echo "🎉 Build Complete!"
-          echo "=================="
-          echo "📦 Original: my.apk"
-          echo "📦 Modded:   my_app_aligned.apk"
-          echo "📏 Size:     $(du -h my_app_aligned.apk | cut -f1)"
+          # Check if decompiled folder exists
+          if [ -d "decompiled" ]; then
+            # Remove old decompiled folder from repo if exists
+            git rm -rf decompiled 2>/dev/null || true
+            
+            # Copy decompiled files to repo root
+            cp -r decompiled .
+            
+            # Configure git
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            
+            # Add and commit
+            git add decompiled/
+            git commit -m "Update decompiled APK files [skip ci]" || echo "No changes to commit"
+            git push
+            
+            echo "✅ Decompiled files uploaded to repository"
+          else
+            echo "⚠️ No decompiled folder found to upload"
+          fi
+          
+      # 13. Upload decompiled files as artifact (backup)
+      - name: Upload decompiled folder as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: decompiled-files
+          path: decompiled/
+          retention-days: 30
+          
+      # 14. Summary
+      - name: Summary
+        run: |
+          echo "========================================="
+          echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
+          echo "========================================="
           echo ""
-          echo "📁 Decompiled structure:"
-          ls -la decompiled/ | head -15
+          echo "📦 Generated files:"
+          ls -lh *.apk 2>/dev/null || echo "No APK files found"
+          echo ""
+          echo "📁 Decompiled files:"
+          ls -la decompiled/ 2>/dev/null | head -20
+          echo ""
+          echo "📥 Download artifacts:"
+          echo "  - modded-apk: Final signed APK"
+          echo "  - decompiled-files: Full decompiled structure"
+          echo ""
+          echo "📂 Decompiled files also pushed to repo root:/decompiled/"
+          echo "========================================="
