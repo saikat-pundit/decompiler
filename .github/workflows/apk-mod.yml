@@ -1,0 +1,125 @@
+name: APK Modding Pipeline
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  mod-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout your repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      # 2. Setup Java (required for Apktool)
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      # 3. Install Apktool
+      - name: Install Apktool
+        run: |
+          wget https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          wget https://github.com/iBotPeaches/Apktool/releases/latest/download/apktool.jar
+          chmod +x apktool
+          sudo mv apktool apktool.jar /usr/local/bin/
+          
+      # 4. Install Android SDK tools (zipalign + apksigner)
+      - name: Install Android SDK Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk
+          echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
+          echo "$ANDROID_HOME/tools/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          
+      # 5. DECOMPILE: Extract APK completely
+      - name: Decompile APK
+        run: |
+          mkdir -p decompiled
+          apktool d my.apk -o decompiled -f
+          echo "✅ APK decompiled successfully to ./decompiled/"
+          
+      # 6. YOUR EDITING PHASE - Modify files here
+      - name: Apply modifications
+        run: |
+          # === EXAMPLE MODIFICATIONS (EDIT THESE AS NEEDED) ===
+          
+          # Example 1: Edit AndroidManifest.xml (change app name)
+          # sed -i 's/original_app_name/MyModdedApp/g' decompiled/AndroidManifest.xml
+          
+          # Example 2: Modify a Smali file (change logic)
+          # sed -i 's/const\/4 v0, 0x1/const\/4 v0, 0x0/g' decompiled/smali/com/example/MainActivity.smali
+          
+          # Example 3: Replace a resource file
+          # cp new_logo.png decompiled/res/drawable/logo.png
+          
+          # Example 4: Edit strings.xml
+          # sed -i 's/Hello World/Hello Modded World/g' decompiled/res/values/strings.xml
+          
+          echo "📝 Modifications applied successfully"
+          
+          # Show what was changed (for debugging)
+          echo "📂 Modified files:"
+          find decompiled -type f -mmin -1 2>/dev/null || echo "No files modified in last minute"
+          
+      # 7. REPACKAGE: Rebuild APK
+      - name: Repackage APK
+        run: |
+          apktool b decompiled -o my_app_unsigned.apk
+          echo "✅ APK repackaged successfully"
+          
+      # 8. ALIGN: Optimize APK structure
+      - name: Align APK
+        run: |
+          zipalign -v -p 4 my_app_unsigned.apk my_app_aligned.apk
+          echo "✅ APK aligned successfully"
+          
+      # 9. SIGN: Generate keystore and sign APK
+      - name: Sign APK
+        run: |
+          # Generate a debug keystore
+          keytool -genkey -v -keystore debug.keystore \
+            -alias debug \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
+          
+          # Sign the APK
+          apksigner sign \
+            --ks debug.keystore \
+            --ks-key-alias debug \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            my_app_aligned.apk
+          
+          echo "✅ APK signed successfully"
+          
+      # 10. Verify the signed APK
+      - name: Verify APK signature
+        run: |
+          apksigner verify my_app_aligned.apk
+          echo "✅ APK verification passed"
+          
+      # 11. Upload the final APK as artifact
+      - name: Upload modded APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: modded-apk
+          path: my_app_aligned.apk
+          retention-days: 30
+          
+      # 12. Optional: List all files for manual download
+      - name: List generated files
+        run: |
+          echo "📦 Generated files:"
+          ls -lah *.apk 2>/dev/null || echo "No APK files found"
+          echo ""
+          echo "📁 Decompiled structure:"
+          ls -la decompiled/
