@@ -51,22 +51,73 @@ jobs:
           echo "✅ Tools installed"
       
       # ============================================
-      # CHECK DECOMPILED DIRECTORY STRUCTURE
+      # FIX: CHECK AND REPAIR DECOMPILED STRUCTURE
       # ============================================
-      - name: Check decompiled structure
+      - name: Check and repair decompiled structure
         run: |
-          echo "📁 Checking decompiled directory structure..."
+          echo "🔧 Checking decompiled directory structure..."
           
           if [ ! -d "decompiled" ]; then
             echo "❌ ERROR: decompiled directory not found!"
-            echo "Please ensure you have a 'decompiled' folder with your modifications."
             exit 1
           fi
           
           echo "📂 Decompiled contents:"
           ls -la decompiled/
           
-          # Check if it's a split structure
+          # Check for apktool.yml - if missing, create it
+          if [ ! -f "decompiled/apktool.yml" ]; then
+            echo "⚠️ apktool.yml not found! Creating it..."
+            
+            # Try to get package info from AndroidManifest
+            if [ -f "decompiled/AndroidManifest.xml" ]; then
+              PACKAGE=$(grep -o 'package="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+              VERSION_CODE=$(grep -o 'versionCode="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+              VERSION_NAME=$(grep -o 'versionName="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+              MIN_SDK=$(grep -o 'minSdkVersion="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+              TARGET_SDK=$(grep -o 'targetSdkVersion="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+              
+              # Create apktool.yml
+              cat > decompiled/apktool.yml << EOF
+              version: 2.0.0
+              apkFileName: unknown.apk
+              isFrameworkApk: false
+              usesFramework:
+                ids:
+                - 1
+              sdkInfo:
+                minSdkVersion: '${MIN_SDK:-21}'
+                targetSdkVersion: '${TARGET_SDK:-30}'
+              packageInfo:
+                forcedPackageId: '127'
+                renameManifestPackage: null
+              versionInfo:
+                versionCode: '${VERSION_CODE:-1}'
+                versionName: '${VERSION_NAME:-1.0}'
+              compressionType: false
+              sharedLibrary: false
+              unknownFiles: {}
+              doNotCompress: null
+              EOF
+              
+              echo "✅ apktool.yml created successfully!"
+            else
+              echo "❌ AndroidManifest.xml not found! Cannot create apktool.yml"
+              exit 1
+            fi
+          else
+            echo "✅ apktool.yml found"
+            cat decompiled/apktool.yml
+          fi
+          
+          # Check for AndroidManifest.xml
+          if [ ! -f "decompiled/AndroidManifest.xml" ]; then
+            echo "❌ ERROR: AndroidManifest.xml not found in decompiled directory!"
+            echo "This doesn't look like a valid decompiled APK structure."
+            exit 1
+          fi
+          
+          # Check if this is a split structure
           if [ -d "decompiled/splits" ] || [ "$(find decompiled -maxdepth 1 -type d -name "split_*" | wc -l)" -gt 0 ]; then
             echo "SPLIT_STRUCTURE=true" >> $GITHUB_ENV
             echo "⚠️ Split APK structure detected"
@@ -76,50 +127,44 @@ jobs:
           fi
           
           # Check for OBB files
-          if [ -d "decompiled/assets" ] && [ "$(find decompiled/assets -name "*.obb" | wc -l)" -gt 0 ]; then
+          if [ -d "decompiled/assets" ] && [ "$(find decompiled/assets -name "*.obb" 2>/dev/null | wc -l)" -gt 0 ]; then
             echo "HAS_OBB=true" >> $GITHUB_ENV
             echo "🎮 OBB files found in assets"
           fi
-          
-          # Check for architecture splits
-          if [ -d "decompiled/lib" ]; then
-            echo "📚 Libraries found:"
-            for arch in decompiled/lib/*; do
-              if [ -d "$arch" ]; then
-                count=$(ls -1 "$arch"/*.so 2>/dev/null | wc -l)
-                echo "  - $(basename "$arch"): $count .so files"
-              fi
-            done
-          fi
       
       # ============================================
-      # REPACKAGE ALL APKS
+      # REPACKAGE APK (FIXED)
       # ============================================
-      - name: Repackage APKs
+      - name: Repackage APK
         run: |
           mkdir -p workspace/xapk_build
           mkdir -p workspace/output
           
-          echo "📦 Repackaging APKs..."
+          echo "📦 Repackaging APK..."
           
+          # Check if it's a split structure
           if [ "${{ env.SPLIT_STRUCTURE }}" = "true" ]; then
             echo "🔄 Repackaging Split APK structure..."
             
-            # Find all split directories
-            SPLIT_DIRS=$(find decompiled -maxdepth 1 -type d -name "split_*" -o -name "splits" 2>/dev/null || echo "")
-            
+            # Try different split structures
             if [ -d "decompiled/splits" ]; then
               # Structure: decompiled/splits/split_name/
               for split in decompiled/splits/*; do
                 if [ -d "$split" ]; then
                   split_name=$(basename "$split")
                   echo "  📦 Repackaging split: $split_name"
-                  apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                  if [ -f "$split/apktool.yml" ]; then
+                    apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                  else
+                    echo "  ⚠️ Skipping $split_name (no apktool.yml)"
+                  fi
                 fi
               done
               # Repackage base
-              echo "  📦 Repackaging base APK"
-              apktool b decompiled -o "workspace/xapk_build/base.apk"
+              if [ -f "decompiled/apktool.yml" ]; then
+                echo "  📦 Repackaging base APK"
+                apktool b decompiled -o "workspace/xapk_build/base.apk"
+              fi
               
             elif [ "$(find decompiled -maxdepth 1 -type d -name "split_*" | wc -l)" -gt 0 ]; then
               # Structure: decompiled/split_name/
@@ -127,23 +172,41 @@ jobs:
                 if [ -d "$split" ]; then
                   split_name=$(basename "$split")
                   echo "  📦 Repackaging split: $split_name"
-                  apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                  if [ -f "$split/apktool.yml" ]; then
+                    apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                  else
+                    echo "  ⚠️ Skipping $split_name (no apktool.yml)"
+                  fi
                 fi
               done
               # Repackage base
-              echo "  📦 Repackaging base APK"
-              apktool b decompiled -o "workspace/xapk_build/base.apk"
+              if [ -f "decompiled/apktool.yml" ]; then
+                echo "  📦 Repackaging base APK"
+                apktool b decompiled -o "workspace/xapk_build/base.apk"
+              fi
             fi
-            
           else
             # Single APK
             echo "📦 Repackaging single APK..."
-            apktool b decompiled -o "workspace/xapk_build/base.apk"
+            if [ -f "decompiled/apktool.yml" ]; then
+              apktool b decompiled -o "workspace/xapk_build/base.apk"
+            else
+              echo "❌ ERROR: decompiled/apktool.yml not found!"
+              exit 1
+            fi
           fi
           
           echo "✅ All APKs repackaged"
           echo "📁 Repackaged files:"
-          ls -la workspace/xapk_build/
+          ls -la workspace/xapk_build/ || echo "No files found!"
+          
+          # Check if any APKs were created
+          APK_COUNT=$(find workspace/xapk_build -name "*.apk" | wc -l)
+          if [ "$APK_COUNT" -eq 0 ]; then
+            echo "❌ No APKs were repackaged! Check the decompiled structure."
+            exit 1
+          fi
+          echo "✅ $APK_COUNT APK(s) created"
       
       # ============================================
       # SIGN ALL APKS
@@ -236,42 +299,6 @@ jobs:
           cat workspace/xapk_build/manifest.json
       
       # ============================================
-      # COPY OBB FILES (if any)
-      # ============================================
-      - name: Copy OBB files
-        if: env.HAS_OBB == 'true'
-        run: |
-          echo "🎮 Copying OBB files..."
-          
-          # Find OBB files in decompiled/assets
-          OBB_FILES=$(find decompiled/assets -name "*.obb" -type f 2>/dev/null)
-          
-          if [ -n "$OBB_FILES" ]; then
-            for obb in $OBB_FILES; do
-              echo "  Copying: $(basename "$obb")"
-              cp "$obb" workspace/xapk_build/
-            done
-            
-            # Update manifest with OBB files
-            OBB_LIST=""
-            for obb in workspace/xapk_build/*.obb; do
-              if [ -f "$obb" ]; then
-                OBB_NAME=$(basename "$obb")
-                if [ -z "$OBB_LIST" ]; then
-                  OBB_LIST="    \"$OBB_NAME\""
-                else
-                  OBB_LIST="$OBB_LIST,\n    \"$OBB_NAME\""
-                fi
-              fi
-            done
-            
-            # Update manifest.json with OBB files
-            sed -i "s/\"obb\": \[\]/\"obb\": [\n$OBB_LIST\n  ]/g" workspace/xapk_build/manifest.json
-            
-            echo "✅ OBB files added to XAPK"
-          fi
-      
-      # ============================================
       # BUILD XAPK
       # ============================================
       - name: Build XAPK
@@ -304,24 +331,13 @@ jobs:
           
           echo "🔍 Verifying XAPK structure..."
           
-          # Check if XAPK exists
           if [ ! -f "$XAPK_NAME" ]; then
             echo "❌ XAPK file not found!"
             exit 1
           fi
           
-          # Check XAPK contents
           echo "📂 XAPK contents:"
           unzip -l "$XAPK_NAME"
-          
-          # Check manifest
-          unzip -p "$XAPK_NAME" manifest.json > /tmp/manifest.json
-          if [ $? -eq 0 ]; then
-            echo "✅ Manifest found:"
-            cat /tmp/manifest.json
-          else
-            echo "⚠️ No manifest.json found"
-          fi
           
           echo "✅ XAPK verification complete"
       
@@ -344,14 +360,6 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
       
-      - name: Upload XAPK build folder
-        uses: actions/upload-artifact@v4
-        with:
-          name: xapk-build-folder
-          path: workspace/xapk_build/
-          retention-days: 7
-          if-no-files-found: warn
-      
       # ============================================
       # PUSH TO REPO (Optional)
       # ============================================
@@ -363,9 +371,7 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           
-          # Copy XAPK to root with consistent name
           cp "$XAPK_NAME" modded_app.xapk
-          
           git add modded_app.xapk
           git commit -m "Add modded XAPK [skip ci]" || echo "No changes"
           git push || echo "Push failed"
@@ -389,14 +395,9 @@ jobs:
           echo "📥 Download artifacts:"
           echo "  - modded-xapk: Complete XAPK file"
           echo "  - repackaged-apks: Individual APKs (debug)"
-          echo "  - xapk-build-folder: XAPK build contents"
-          echo ""
-          echo "📂 XAPK contents:"
-          unzip -l "$XAPK_NAME" 2>/dev/null || echo "  (not available)"
           echo ""
           echo "📱 Installation:"
-          echo "  Method 1: Install XAPK with SAIPA or XAPK Installer"
-          echo "  Method 2: Extract and install APKs manually"
-          echo "  Method 3: adb install-multiple base.apk split_*.apk"
+          echo "  Method 1: Install with XAPK Installer app"
+          echo "  Method 2: adb install-multiple base.apk split_*.apk"
           echo ""
           echo "========================================="
