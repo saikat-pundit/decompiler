@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
       
       # ============================================
-      # FIXED: INSTALL APKTOOL WITH WORKING VERSION
+      # INSTALL APKTOOL (CORRECT VERSION)
       # ============================================
       - name: Install Apktool
         run: |
@@ -35,67 +35,28 @@ jobs:
           sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
           sudo chmod +x /usr/local/bin/apktool
           
-          # Get the latest release version that actually has a jar file
-          echo "🔍 Finding latest working Apktool version..."
-          
-          # Try multiple versions (most common stable ones)
-          for version in "2.9.0" "2.8.1" "2.7.0" "2.6.1" "2.5.0"; do
-            echo "Trying version $version..."
-            if wget --spider https://github.com/iBotPeaches/Apktool/releases/download/v$version/apktool.jar 2>/dev/null; then
-              echo "✅ Found working version: $version"
-              sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v$version/apktool.jar
-              break
-            fi
-          done
-          
-          # If none of the above worked, try the latest from API
-          if [ ! -f "/usr/local/bin/apktool.jar" ]; then
-            echo "🔄 Trying to get latest version from API..."
-            LATEST_VERSION=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
-            echo "Latest version from API: $LATEST_VERSION"
-            
-            # Try with the version from API
-            if wget --spider https://github.com/iBotPeaches/Apktool/releases/download/$LATEST_VERSION/apktool.jar 2>/dev/null; then
-              sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/$LATEST_VERSION/apktool.jar
-            fi
-          fi
-          
-          # Final fallback - use a known working version
-          if [ ! -f "/usr/local/bin/apktool.jar" ]; then
-            echo "⚠️ Using fallback version 2.4.1"
-            sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.4.1/apktool.jar
-          fi
+          # Download the CORRECT file for v3.0.3 (with underscore)
+          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
+          sudo chmod +x /usr/local/bin/apktool.jar
           
           # Verify installation
-          sudo chmod +x /usr/local/bin/apktool.jar
-          echo "✅ Apktool installed:"
-          apktool --version || echo "Apktool installed successfully"
-          
-          # List installed files
-          ls -la /usr/local/bin/apktool*
+          echo "✅ Apktool installed successfully:"
+          apktool --version
       
       # ============================================
-      # INSTALL ANDROID SDK TOOLS (Optional but recommended)
+      # INSTALL ANDROID SDK TOOLS (Optional)
       # ============================================
       - name: Install Android SDK Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk || echo "Android SDK not available, using alternatives"
-          
-          # If android-sdk not available, install just the tools we need
-          if ! command -v zipalign &> /dev/null; then
-            echo "📦 Installing zipalign and apksigner via alternative method..."
-            sudo apt-get install -y android-tools-adb android-tools-fastboot || echo "Using minimal tools"
-          fi
-          
+          sudo apt-get install -y android-sdk || echo "Android SDK not available, continuing..."
           echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
           echo "/usr/lib/android-sdk/tools/bin" >> $GITHUB_PATH
           echo "/usr/lib/android-sdk/platform-tools" >> $GITHUB_PATH
           
-          # Check available tools
-          echo "🔍 Available tools:"
-          command -v zipalign && zipalign -h 2>/dev/null | head -2 || echo "zipalign not available"
-          command -v apksigner && apksigner --version 2>/dev/null || echo "apksigner not available"
+          # Check if tools are available (non-fatal)
+          command -v zipalign && echo "✅ zipalign found" || echo "⚠️ zipalign not found (optional)"
+          command -v apksigner && echo "✅ apksigner found" || echo "⚠️ apksigner not found (optional)"
       
       # ============================================
       # INSTALL PYTHON DEPENDENCIES
@@ -105,7 +66,7 @@ jobs:
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           else
-            echo "No requirements.txt found"
+            echo "ℹ️ No requirements.txt found, skipping"
           fi
       
       # ============================================
@@ -115,7 +76,7 @@ jobs:
         run: |
           # Check if my.apk exists
           if [ ! -f "my.apk" ]; then
-            echo "❌ ERROR: my.apk not found!"
+            echo "❌ ERROR: my.apk not found in root directory!"
             echo "Please place your APK file as 'my.apk' in the root directory"
             exit 1
           fi
@@ -136,9 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: modded-apk
-          path: |
-            workspace/output/*.apk
-            workspace/output/*.apks
+          path: workspace/output/my_app_signed.apk
           retention-days: 30
           if-no-files-found: warn
       
@@ -159,13 +118,13 @@ jobs:
           if-no-files-found: warn
       
       # ============================================
-      # PUSH DECOMPILED FILES TO REPO
+      # PUSH DECOMPILED FILES TO REPOSITORY
       # ============================================
       - name: Push decompiled files to repository
         if: success()
         run: |
           if [ -d "workspace/decompiled" ]; then
-            # Remove old decompiled folder
+            # Remove old decompiled folder from repo
             git rm -rf decompiled 2>/dev/null || true
             
             # Copy decompiled to root
@@ -178,31 +137,31 @@ jobs:
             git commit -m "Update decompiled files [skip ci]" || echo "No changes to commit"
             git push || echo "Push failed (may be no changes)"
             
-            echo "✅ Decompiled files pushed to repository"
+            echo "✅ Decompiled files pushed to repository root: /decompiled/"
           else
-            echo "⚠️ No decompiled folder found"
+            echo "⚠️ No decompiled folder found to push"
           fi
       
       # ============================================
-      # SUMMARY
+      # WORKFLOW SUMMARY
       # ============================================
       - name: Workflow Summary
         run: |
           echo "========================================="
-          echo "✅ WORKFLOW COMPLETED"
+          echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
           echo "========================================="
           echo ""
-          echo "📦 Artifacts available:"
-          echo "  - modded-apk: Final signed APK(s)"
+          echo "📦 Available Artifacts (Download from Actions tab):"
+          echo "  - modded-apk: Final signed APK"
           echo "  - decompiled-files: Full decompiled structure"
-          echo "  - modding-logs: Detailed logs"
+          echo "  - modding-logs: Detailed operation logs"
           echo ""
-          echo "📂 Decompiled files also in repo: /decompiled/"
+          echo "📂 Decompiled files also available in repo: /decompiled/"
           echo ""
           echo "📊 Output directory contents:"
-          ls -la workspace/output/ 2>/dev/null || echo "No output found"
+          ls -la workspace/output/ 2>/dev/null || echo "  (no output found)"
           echo ""
           echo "📊 Log directory contents:"
-          ls -la workspace/logs/ 2>/dev/null | head -5
+          ls -la workspace/logs/ 2>/dev/null | head -5 || echo "  (no logs found)"
           echo ""
           echo "========================================="
