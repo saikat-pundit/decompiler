@@ -1,17 +1,7 @@
-name: APK Modding with Python
+name: APK Modding Pipeline
 
 on:
   workflow_dispatch:
-    inputs:
-      mod_config:
-        description: 'Path to mods configuration JSON (optional)'
-        required: false
-        default: 'mods/mods_config.json'
-      skip_cleanup:
-        description: 'Skip cleanup after build'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   mod-apk:
@@ -29,6 +19,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          # Don't fail if requirements.txt doesn't exist
           cache: 'pip'
       
       - name: Setup Java
@@ -36,11 +27,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt || echo "No requirements.txt found"
       
       # ============================================
       # INSTALL APKTOOL
@@ -69,14 +55,33 @@ jobs:
           echo "/usr/lib/android-sdk/platform-tools" >> $GITHUB_PATH
           
           # Verify tools
-          zipalign -h || echo "zipalign not found"
-          apksigner --version || echo "apksigner not found"
+          zipalign -h 2>/dev/null || echo "zipalign not found (optional)"
+          apksigner --version 2>/dev/null || echo "apksigner not found (optional)"
+      
+      # ============================================
+      # INSTALL PYTHON DEPENDENCIES (optional)
+      # ============================================
+      - name: Install Python dependencies
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping"
+          fi
       
       # ============================================
       # RUN THE PYTHON MODDER
       # ============================================
       - name: Run APK Modder
         run: |
+          # Check if my.apk exists
+          if [ ! -f "my.apk" ]; then
+            echo "❌ ERROR: my.apk not found!"
+            echo "Please place your APK file as 'my.apk' in the root directory"
+            exit 1
+          fi
+          
+          # Run the modder
           python apk_modder.py my.apk --work-dir workspace
       
       # ============================================
@@ -88,6 +93,7 @@ jobs:
           name: modded-apk
           path: workspace/output/my_app_signed.apk
           retention-days: 30
+          if-no-files-found: warn
       
       - name: Upload decompiled files
         uses: actions/upload-artifact@v4
@@ -95,6 +101,7 @@ jobs:
           name: decompiled-files
           path: workspace/decompiled/
           retention-days: 30
+          if-no-files-found: warn
       
       - name: Upload logs
         uses: actions/upload-artifact@v4
@@ -102,11 +109,13 @@ jobs:
           name: modding-logs
           path: workspace/logs/
           retention-days: 7
+          if-no-files-found: warn
       
       # ============================================
       # PUSH DECOMPILED FILES TO REPO
       # ============================================
       - name: Push decompiled files to repository
+        if: success()
         run: |
           if [ -d "workspace/decompiled" ]; then
             # Remove old decompiled folder
@@ -119,8 +128,8 @@ jobs:
             git config user.name "GitHub Actions Bot"
             git config user.email "actions@github.com"
             git add decompiled/
-            git commit -m "Update decompiled files [skip ci]" || echo "No changes"
-            git push || echo "Push failed"
+            git commit -m "Update decompiled files [skip ci]" || echo "No changes to commit"
+            git push || echo "Push failed (may be no changes)"
             
             echo "✅ Decompiled files pushed to repository"
           fi
@@ -131,7 +140,7 @@ jobs:
       - name: Workflow Summary
         run: |
           echo "========================================="
-          echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
+          echo "✅ WORKFLOW COMPLETED"
           echo "========================================="
           echo ""
           echo "📦 Download artifacts:"
@@ -141,9 +150,7 @@ jobs:
           echo ""
           echo "📂 Decompiled files also in repo: /decompiled/"
           echo ""
-          echo "📊 Log files:"
-          ls -la workspace/logs/ 2>/dev/null || echo "No logs found"
-          echo ""
-          echo "📁 Output files:"
+          echo "📊 Output:"
           ls -la workspace/output/ 2>/dev/null || echo "No output found"
+          echo ""
           echo "========================================="
