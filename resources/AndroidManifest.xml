@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:versionCode="10907"
+    android:versionName="1.9.7"
+    android:hardwareAccelerated="true"
+    android:compileSdkVersion="36"
+    android:compileSdkVersionCodename="16"
+    android:requiredSplitTypes="base__abi,base__density"
+    android:splitTypes=""
+    package="ins.mdm.app"
+    platformBuildVersionCode="36"
+    platformBuildVersionName="16">
+    <uses-sdk
+        android:minSdkVersion="24"
+        android:targetSdkVersion="36"/>
+    <supports-screens
+        android:anyDensity="true"
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:resizeable="true"
+        android:xlargeScreens="true"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.PICK"/>
+        </intent>
+        <intent>
+            <action android:name="com.android.camera.action.CROP"/>
+            <data
+                android:mimeType="image/*"
+                android:scheme="content"/>
+        </intent>
+    </queries>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="true"/>
+    <permission
+        android:name="ins.mdm.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:protectionLevel="signature"/>
+    <uses-permission android:name="ins.mdm.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true"
+        android:supportsRtl="true"
+        android:extractNativeLibs="false"
+        android:appComponentFactory="androidx.core.app.CoreComponentFactory">
+        <activity
+            android:theme="@style/Theme.App.SplashScreen"
+            android:label="@string/activity_name"
+            android:name="ins.mdm.app.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:configChanges="smallestScreenSize|screenSize|uiMode|screenLayout|orientation|navigation|keyboardHidden|keyboard|locale"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter android:label="@string/launcher_name">
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:exported="false"
+            android:authorities="ins.mdm.app.cdv.core.file.provider"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/cdv_core_file_provider_paths"/>
+        </provider>
+        <provider
+            android:name="org.apache.cordova.camera.FileProvider"
+            android:exported="false"
+            android:authorities="ins.mdm.app.cordova.plugin.camera.provider"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/camera_provider_paths"/>
+        </provider>
+        <activity
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+            android:exported="false"/>
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version"/>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:exported="false"
+            android:authorities="ins.mdm.app.androidx-startup">
+            <meta-data
+                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+                android:value="androidx.startup"/>
+            <meta-data
+                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+                android:value="androidx.startup"/>
+            <meta-data
+                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+                android:value="androidx.startup"/>
+        </provider>
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            android:permission="android.permission.DUMP"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SKIP_FILE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION"/>
+            </intent-filter>
+        </receiver>
+        <meta-data
+            android:name="com.android.vending.splits.required"
+            android:value="true"/>
+        <meta-data
+            android:name="com.android.stamp.source"
+            android:value="https://play.google.com/store"/>
+        <meta-data
+            android:name="com.android.stamp.type"
+            android:value="STAMP_TYPE_DISTRIBUTION_APK"/>
+        <meta-data
+            android:name="com.android.vending.splits"
+            android:resource="@xml/splits0"/>
+        <meta-data
+            android:name="com.android.vending.derived.apk.id"
+            android:value="2"/>
+    </application>
+</manifest>

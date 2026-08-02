@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<!--
+  * Please see the included README.md file for license terms and conditions.
+  -->
+<head>
+    <title>::MDM::</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <!-- see http://webdesign.tutsplus.com/tutorials/htmlcss-tutorials/quick-tip-dont-forget-the-viewport-meta-tag -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="keywords" content="mdm,mdmes,mdminses,wbmdm,wbmdmes,ins.mdmes"/>
+    <meta name="description" content="west bengal mid day meal education supervisor inspection application"/>
+    <meta name="subject" content="mid day meal education supervisor inspection application">
+    <meta name="copyright"content="mdm">
+    <meta name="topic" content="mid day meal education supervisor inspection application">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+
+    <script src="js/jquery-3.4.1.js"></script>
+
+    <!-- Bootstrap 3.3.4 -->
+    <link href="./css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="./css/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="./css/custom.css" rel="stylesheet" type="text/css">
+    <link href="./css/loader_style.css" rel="stylesheet" type="text/css">
+    <script src="cordova.js" type="text/javascript"></script>
+    <script src="cordova_plugins.js" type="text/javascript"></script>
+    <script src="js/connection.js"></script>    
+    <link href="./css/font.css" rel="stylesheet" type="text/css">
+   <!--  <link href="https://fonts.googleapis.com/css?family=Oxygen:300,400,700&amp;subset=latin-ext" rel="stylesheet"> -->
+    <script>
+        var db;
+        var gps;
+        document.addEventListener("deviceready", onDeviceReady, false)
+
+        function onDeviceReady(){
+            checkAvailability();
+            $("#preloader").fadeIn();
+            db = window.sqlitePlugin.openDatabase({name:"MDMSupervisor.db", location: 'default'});
+            db.transaction(function(tx){
+            
+            //tx.executeSql('DROP TABLE IF EXISTS School_List');
+            tx.executeSql("CREATE TABLE IF NOT EXISTS School_List(Id INTEGER PRIMARY KEY,School_Dise,School_Code,Circle_Code,Block_Code,Block_Name,District_Code,District_Name,Management_Code,Management_Name,Pre_Primary,Upper_Primary,School_Name,Gs_Ward_Code)");
+            },function(error){
+                alert("failed");
+            },function(){
+                //alert(JSON.stringify(success));
+                //alert("Table created");
+
+            });
+
+            db.transaction(function(tx) {
+            //tx.executeSql('DROP TABLE IF EXISTS SupervisorInspectionForm;');   
+            tx.executeSql('CREATE TABLE IF NOT EXISTS SupervisorInspectionForm(inspection_id_f INTEGER PRIMARY KEY,state_code,supervisor_phone_no,district_code,district_name,circle_code,block_code,block_name,school_code,school_name,management,primary_details,upper_primary_details,primary_att,upper_primary_att,visiting_date,visiting_date_db,mdm_avail,not_running,not_running_cause,other_cause,drinking_water,toilet,manpower,committee,cooking_cost,honorarium,rice_stock,hygiene,daily_sms,remarks,latitude,longitude,enter_by_stake,image1,image2,image3,image4,image5)');
+            }, function(error) {
+            alert("failed");
+            }, function() {
+            //alert("table created successfully");
+            //geolocation();
+            });
+
+            if(localStorage.getItem("stake_level_code") == '10'){
+                School_List();
+            }
+             $("#preloader").fadeOut();
+
+              console.log(navigator.notification);
+
+            
+        }
+
+        $(document).ready(function(){
+         //alert(localStorage.getItem("name")); 
+        if(localStorage.getItem("token")!=null)
+        {
+            localStorage.removeItem("fdate");
+            localStorage.removeItem("tdate");
+            localStorage.removeItem("o_fdate");
+            localStorage.removeItem("o_tdate");
+            
+            $(".inner_header_bottom_dashboard h4").append(localStorage.getItem("full_name"));
+            check_name();
+            //get_name();
+         //School_List();
+         /*if(localStorage.getItem("stake_level_code") == '10'){
+            $("#es_inspection").show();
+            $("#es_offline_history").show();
+            $("#es_history").show();
+         }
+         else{
+            $("#officer_inspection").show();
+            $("#officer_history").show();
+            $("#officer_offline_history").show();
+         }*/
+        }
+        else
+        {
+            alert("UnAuthorized Access");
+            navigator.app.exitApp();
+        }
+         
+        });
+    
+//document.addEventListener("deviceready", onDeviceReady, false);
+ document.addEventListener("backbutton", onBackKeyDown, false); 
+           
+function onBackKeyDown() {
+                navigator.app.exitApp();
+}
+
+
+
+
+
+function checkAvailability(){
+    cordova.plugins.diagnostic.isGpsLocationAvailable(function(available){
+        console.log("GPS location is " + (available ? "available" : "not available"));
+        if(!available){
+            gps = 0;
+           checkAuthorization();
+        }else{
+            gps = 1;
+            console.log("GPS location is ready to use");
+        }
+    }, function(error){
+        console.error("The following error occurred: "+error);
+    });
+}
+
+function checkAuthorization(){
+    cordova.plugins.diagnostic.isLocationAuthorized(function(authorized){
+        console.log("Location is " + (authorized ? "authorized" : "unauthorized"));
+        if(authorized){
+            checkDeviceSetting();
+        }else{
+            cordova.plugins.diagnostic.requestLocationAuthorization(function(status){
+                switch(status){
+                    case cordova.plugins.diagnostic.permissionStatus.GRANTED:
+                        console.log("Permission granted");
+                        checkDeviceSetting();
+                        break;
+                    case cordova.plugins.diagnostic.permissionStatus.DENIED:
+                        console.log("Permission denied");
+                        // User denied permission
+                        break;
+                    case cordova.plugins.diagnostic.permissionStatus.DENIED_ALWAYS:
+                        console.log("Permission permanently denied");
+                        // User denied permission permanently
+                        break;
+                }
+            }, function(error){
+                console.error(error);
+            });
+        }
+    }, function(error){
+        console.error("The following error occurred: "+error);
+    });
+}
+
+function checkDeviceSetting(){
+    cordova.plugins.diagnostic.isGpsLocationEnabled(function(enabled){
+        console.log("GPS location setting is " + (enabled ? "enabled" : "disabled"));
+        if(!enabled){
+            cordova.plugins.locationAccuracy.request(function (success){
+                console.log("Successfully requested high accuracy location mode: "+success.message);
+            }, function onRequestFailure(error){
+                console.error("Accuracy request failed: error code="+error.code+"; error message="+error.message);
+                if(error.code !== cordova.plugins.locationAccuracy.ERROR_USER_DISAGREED){
+                    if(confirm("Failed to automatically set Location Mode to 'High Accuracy'. Would you like to switch to the Location Settings page and do this manually?")){
+                        cordova.plugins.diagnostic.switchToLocationSettings();
+                    }
+                }
+            }, cordova.plugins.locationAccuracy.REQUEST_PRIORITY_HIGH_ACCURACY);
+        }
+    }, function(error){
+        console.error("The following error occurred: "+error);
+    });
+}
+            
+    function check_name(){
+        if(localStorage.getItem("check_name_status")!=1){
+            get_name();
+        }
+
+        /*if(localStorage.getItem("DB_Status")=="0"){
+            Circle(localStorage.getItem("circle_code"),localStorage.getItem("stake_user"));
+        }*/
+        
+    }
+
+
+    function get_name(){
+        
+    $("#preloader").fadeIn();
+    $.ajax({
+    type: "GET",
+    //url: "https://mdm.wbsed.gov.in/mdm_app/mdm/token_check_final",
+    //url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_es_inspection_app/mdm_es_insp/token_check_final",
+    url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/token_check_final",
+    data:{
+    authuser:'16288adbe9a7cb4baeb0f0d8df7ba4bb',
+    authpassword:'001b6d7734d59c236d8eef95842f254e',
+    token:localStorage.getItem("token"),
+    phno:localStorage.getItem("phno")
+    },
+    dataType:"JSON",
+    success: function(result)
+   {
+    //alert(JSON.stringify(result));
+     if(result.code=='1')
+     {
+        $("#preloader").fadeIn();   
+        $.ajax({
+          type: "GET",
+          //url: "https://mdm.wbsed.gov.in/mdmappv3/Common/get_profile_details",
+          url: "https://pmposhan.wb.gov.in/mdmappv3/Common/get_profile_details",
+          data:{
+            token:'ba0b38a250289cc85a5ad60ca7712997',
+            mobile_no:localStorage.getItem("phno")  
+          },
+        dataType:"JSON",
+        success: function(result)
+       {
+        console.log(JSON.stringify(result));
+        console.log("=====================");
+        localStorage.setItem("name",result.full_name);
+        localStorage.setItem("profile_code_pk",result.profile_code_pk);
+        localStorage.setItem("profile_mobile_no",result.mobile_no);
+        localStorage.setItem("stake_level_type_code",result.stake_level_type_code_fk);//Need to be changed later on as stake_level_type_code
+        //localStorage.setItem("stake_level",result.stake_level_code_fk);//Need to be changed later on as stake_level_code
+        localStorage.setItem("stake_level_user",result.stake_level_user);
+        localStorage.setItem("district_code",result.district_code_fk);
+        localStorage.setItem("state_code", result.state_code_fk);
+        localStorage.setItem("block_code",result.block_code_fk);
+        localStorage.setItem("circle_code",result.circle_code_fk);
+        localStorage.setItem("stake_user", result.stake_user_public);
+        localStorage.setItem("check_name_status","1");
+        //localStorage.setItem("sub_div_code",result.subdiv_code_fk);
+  
+        if(localStorage.getItem("DB_Status")=="0"){
+        Circle(localStorage.getItem("circle_code"),localStorage.getItem("stake_user"));
+        }
+        /*if(localStorage.getItem("stake_level_code") == '10'){
+            School_List();
+        }*/
+        $("#preloader").fadeOut();              
+       },
+       error: function(){   
+      }
+      });
+     }
+     else if(result.code=='0')
+     {
+       alert(result.msg);
+       logoutajax()
+       //navigator.app.exitApp();
+       
+     }
+    }
+    })
+}
+    
+    
+    function School_List(){
+        var mobile = localStorage.getItem("profile_mobile_no");
+        db.transaction(function(tx) {
+            tx.executeSql('SELECT * FROM SupervisorInspectionForm WHERE Supervisor_Phone_No = ?',[mobile],
+                function(tx,rs){
+                    //alert(rs.rows.length);
+                    record = rs.rows.length;
+                    if(record==4){
+                        alert("Offline Record List is Almost full."+"\n"+"Kindly Sync the Offline Reords.");
+                    }
+                    //alert(record);
+                },function(tx, error) {
+                      alert('SELECT error: ' + error.message);
+                });
+            });
+        /*if(localStorage.getItem("DB_Status")=="0"){
+        Circle(localStorage.getItem("circle_code"));
+        }*/
+    }
+
+
+    
+        function Circle(circle,stake_user)
+            {   
+            //alert(circle);
+            $("#preloader").fadeIn();
+            
+            $.ajax({
+                type: "GET",
+                 /*url: "https://mdm.wbsed.gov.in/mdmappv3/Common/get_all_school_by_block_id",*/
+                //url: "https://192.168.1.250/cmdmp/mdmappv3/Common/get_circle_related_data",
+                //url: "https://mdm.wbsed.gov.in/mdmappv3/Common/get_circle_related_data",
+                //url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_es_inspection_app/mdm_es_insp/school_info",
+                url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/school_info",
+                data:{
+                authuser:"16288adbe9a7cb4baeb0f0d8df7ba4bb",
+                authpassword:"001b6d7734d59c236d8eef95842f254e",
+                circle_code_fk:circle,
+                stake_user_public:stake_user
+                    },
+                dataType:"JSON",
+                success : function(result)
+                {
+                //alert(JSON.stringify(result));
+                //alert(result.rows);
+                //alert(result.value);
+                //console.log(JSON.stringify(result.value));
+                if(result.rows>0)
+                {
+                db.transaction(function(tx){
+                    //alert(result.length);
+                    for(i=0;i<result.rows;i++){
+                        /*var school_name = result[i].school_name;
+                        var school_code_pk= result[i].school_code_pk;*/
+                        tx.executeSql("INSERT into School_List(School_Dise,School_Code,Circle_Code,Block_Code,Block_Name,District_Code,District_Name,Management_Code,Management_Name,Pre_Primary,Upper_Primary,School_Name,Gs_Ward_Code) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",[result.value[i].schcd,result.value[i].school_code_pk,result.value[i].circle_code_fk,result.value[i].block_code_fk,result.value[i].block_name,result.value[i].district_code_pk,result.value[i].district_name,result.value[i].management_code_fk,result.value[i].management_name,result.value[i].primary,result.value[i].upper_primary,result.value[i].school_name,result.value[i].gs_ward_code_fk]);
+                    }
+                },function(error){
+                    alert(error.message);
+                    //alert("failed");
+                },function(){
+                    //alert(JSON.stringify(success));
+                    //navigator.notification.alert('No of School:'+result.length,Dismiss,'School List Entered Succesfully');
+                    //alert("School List Entered Succesfully.\n"+"No of School:"+ result.length);
+                    //alert(result.length);
+                    localStorage.setItem("DB_Status", "1");
+
+                });              
+                $("#preloader").fadeOut();
+                }
+                else{
+                    alert("No School has been assigned for you. \nPlease contact to your SI for further details.");
+                    alert("Logging Out.\n\nPlease Log in after assigining your schools by your SI.");
+                    logoutajax();
+                }
+                }               
+            });      
+            }
+   function Dismiss(){} 
+    
+    function logoutajax()
+    {
+    $("#preloader").fadeIn();
+                    $.ajax({            
+                        //url: "https://mdm.wbsed.gov.in/mdm_app/mdm/mdm_logout_user",
+                        //url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_es_inspection_app/mdm_es_insp/mdm_logout_user",
+                        url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/mdm_logout_user",
+                        type : 'GET',
+                        data:{
+                        authuser:"16288adbe9a7cb4baeb0f0d8df7ba4bb",
+                        authpassword:"001b6d7734d59c236d8eef95842f254e",                        
+                        phoneno:localStorage.getItem("phno"),
+                        token:localStorage.getItem("token"),
+                        sl_no:localStorage.getItem("sl_no")
+                        },              
+                        dataType:"json",
+                        success : function(data) {
+                        //alert(JSON.stringify(data));
+                         if(data.code=="1")
+                         {
+                            //alert("hiiii");
+                            localStorage.clear();
+                            window.location="Welcome.html";
+                         }
+                         if(data.code=="0")
+                         {
+                            //alert("noooooo");
+                            localStorage.clear();
+                            alert(data.msg);
+                            navigator.app.exitApp();
+                         } 
+                        
+                        
+                        $("#preloader").fadeOut();          
+                        }
+                        });
+    }
+    function selectschool(){
+        //alert("select_school");
+        checkAvailability();
+        if(!gps){
+            alert("Please turn on the GPS of your device and try again!");
+            checkAvailability();
+            /*alert("gps on");
+            window.location = "School_Select_Supervisor.html";*/
+        }
+        else {
+            //alert("gps on");
+            window.location = "School_Select_Supervisor.html";
+            /*alert("Please turn on the GPS of your device");
+            checkAvailability();*/
+        }
+    }
+
+    
+    </script>
+</head>
+<body class="bg">
+<div id="preloader" style="display:none;">
+<div class="cssload-container">
+<div class="cssload-speeding-wheel"></div>
+</div>
+</div>
+<div class="state_project">
+
+    <div class="inner_header">
+        <div class="container">
+            <div class="inner_header_top_dashboard">
+        
+                <img src="images/inner_logo.png" class="img-responsive">
+                
+                
+            </div>
+            
+            <div class="inner_header_bottom_dashboard">
+                <h2>welcome</h2>
+                <center><h4></h4></center>
+            </div>
+            
+            <div class="logoutbtn" onclick="logoutajax();">
+                <a href="#"><img src="images/off-button.svg">  </a>
+            </div>
+            
+            
+            
+        </div>
+    </div>
+    <div class="bottom_link">
+        <div class="container">
+             <div class="col-xs-12" id="profile">
+                <a href="Profile.html">
+                 <div class="yellow_bg bottom_link_main">
+                        <img src="images/users.svg" class="img-responsive">
+                    <span>Profile</span>
+                 </div>
+                 </a>
+            </div>
+            <!-- <div class="col-xs-12" id="officer_inspection" style="display: none;">
+                <a href="district_select.html">
+                <div class="lightgreen_bg bottom_link_main">
+                        <img src="images/consent.svg" class="img-responsive">                       
+                    <p><span>Inspection Form</span></p>
+                </div>
+                </a>
+            </div>
+            <div class="col-xs-12" id="officer_offline_history" style="display: none;">
+                <a href="officer_offline_history.html">
+                <div class="brown_bg bottom_link_main">
+                    <img src="images/icon.svg" class="img-responsive">
+                    <p><span>Draft inspection</span></p>
+                </div>
+                </a>
+            </div>
+            <div class="col-xs-12" id="officer_history" style="display: none;">
+                <a href="officer_history.html">
+                <div class="blue_bg bottom_link_main">
+                            <img src="images/hierarchy.svg" class="img-responsive">
+                    <p><span>View History</span></p>
+                </div>
+                </a>
+            </div> -->
+            <div class="col-xs-12" onclick="selectschool();" id="es_inspection">
+                <!-- <a href="School_Select_Supervisor.html"> -->
+                <div class="lightgreen_bg bottom_link_main">
+                        <img src="images/consent.svg" class="img-responsive">                       
+                    <p><span>Education Supervisor Inspection</span></p>
+                </div>
+                </a>
+            </div>
+        
+            <div class="col-xs-12" id="es_offline_history">
+                <a href="Offline_History.html">
+                <div class="brown_bg bottom_link_main">
+                            <img src="images/icon.svg" class="img-responsive">
+                    <p><span>Draft inspection Report</span></p>
+                </div>
+                </a>
+            </div>
+            <div class="col-xs-12" id="es_history">
+                <a href="history.html">
+                <div class="blue_bg bottom_link_main">
+                            <img src="images/hourglass.svg" class="img-responsive">
+                    <p><span>View History</span></p>
+                </div>
+                </a>
+            </div>
+       
+        <div class="clearfix"></div>
+    </div>
+    
+    </div>
+</div>
+  
+</body>
+</html>
+

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>::MDM::</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="keywords" content="mdm,mdmes,mdminses,wbmdm,wbmdmes,ins.mdmes"/>
+	<meta name="description" content="west bengal mid day meal education supervisor inspection application"/>
+	<meta name="subject" content="mid day meal education supervisor inspection application">
+	<meta name="copyright"content="mdm">
+	<meta name="topic" content="mid day meal education supervisor inspection application">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.4.1.js"></script>
+    <!-- <script type="text/javascript" src="js/jquery-ui.js"></script> -->
+  	<script src='js/bootstrap.min.js'></script>
+	   <!--<script src='js/inspection_form.js'></script>
+	<script src='js/crypto.js'></script> -->
+    <!-- Bootstrap 3.3.4 -->
+    <link href="./css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="./css/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="./css/custom.css" rel="stylesheet" type="text/css">
+	<link href="./css/loader_style.css" rel="stylesheet" type="text/css">
+	<link href="./css/myStyle.css" rel="stylesheet" type="text/css">
+	<link href="./css/formstyle.css" rel="stylesheet" type="text/css" media="all"/>
+	<script src="cordova.js" type="text/javascript"></script>
+	<!-- <script src="cordova_plugins.js" type="text/javascript"></script> -->  
+	<script src="js/validatesupervisor_new.js" type="text/javascript"></script>
+	<!-- <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script> -->
+	
+	<script>
+	var local_date_new;
+	var local_date_db;
+	var db1;
+	var db2;
+	//var enrollment;
+	/*var latitude;
+	var longitude;*/
+	var primary;
+	var gps=0;
+	var upper_primary;
+	var pp;
+	//var ci_iv;
+	//var cv;
+	//var cvi_viii;
+	document.addEventListener("deviceready", onDeviceReady, false)
+	function onDeviceReady(){
+		//checkAvailability();
+        //navigator.geolocation.getCurrentPosition(onSuccess, onError);   
+            db1 = window.sqlitePlugin.openDatabase({name:"MDMSupervisor.db", location: 'default'});
+            //db2 = window.sqlitePlugin.openDatabase({name:"MDMSupervisor.db", location: 'default'});
+            school_check(localStorage.getItem("School_Code"),local_date_db);
+            school_details(localStorage.getItem("School_Code"));
+            //school_check(localStorage.getItem("School_Code"),local_date_db);
+    }
+
+
+	document.addEventListener("backbutton", onBackKeyDown, false); 	
+	function onBackKeyDown(){
+		window.location = "School_Select_Supervisor.html";
+	}	   
+	////////////////////////////////////////////////
+	$( document ).ready(function() {
+
+			
+		 	var today = new Date(); 
+			var dd = today.getDate(); 
+			var mm = today.getMonth()+1;//January is 0! 
+			var yyyy = today.getFullYear(); 
+			if(dd<10){dd='0'+dd} 
+			if(mm<10){mm='0'+mm} 
+			local_date_db=(yyyy+'-'+mm+'-'+dd);
+			//let local_date_db = null;
+			//let local_date_new = null;
+			//local_date_db=localStorage.getItem("current_date_for_db");
+			// local
+			local_date_new=(dd+'-'+mm+'-'+yyyy);
+			//local_date_new=localStorage.getItem("current_date");
+			 //local_date_new=(mm+'-'+dd+'-'+yyyy);
+			 $(".label_data #vistdate").html(local_date_new);
+			var d = new Date();
+		    var timestamp_local = d.getTime();
+
+		    /*$("#preloader").fadeIn();
+		 	$.ajax({
+			type: "GET",
+			url: "https://mdm.wbsed.gov.in/mdm_es_inspection_app/mdm_es_insp/count_inspection",
+			url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/count_inspection",
+			data:{
+			authuser:'16288adbe9a7cb4baeb0f0d8df7ba4bb',
+      authpassword:'001b6d7734d59c236d8eef95842f254e',
+			date:local_date_db,
+			school_code:localStorage.getItem("School_Code")
+			},
+			dataType:"JSON",
+			success: function(result)
+			{
+				console.log(JSON.stringify(result));
+				console.log(result.rows);
+				if(result.rows != '0')
+				{
+				alert("Inspection of this school is already done for today");
+				window.location("School_Select_Supervisor.html");
+				}
+				$("#preloader").fadeOut();
+			}
+			});*/
+
+			
+
+			/*function cause(){
+	    		alert($("#not_running").val());
+	    		if($("#not_running").val()==6){
+	    		alert("other");
+
+	    		}
+    		}*/
+
+
+		/*---------------------------------------------------------------------------*/
+			
+		/*---------------------------------------------------------------------------*/
+
+		//$("#preloader").fadeIn();
+		//$('input[id$=date]').datepicker({dateFormat: 'mm-dd-yy'});
+		//school_details(localStorage.getItem("School_Code"));
+
+		$("#mdm_running").change(function () {
+	        if($(this).is(":checked")) {
+	        	//alert("no");
+	             $("#StudentAvail1").hide();
+	             $("#primary_present").val(0);
+	             $("#upper_primary_present").val(0);
+	             $("#MDMNotRunning").show();
+	             $("#total_mdm").val(0);
+	   
+	        }
+	        else{
+	        	//alert("yes");
+	        	
+	        	$("#MDMNotRunning").hide();
+	        	$("#StudentAvail1").show();
+	        	$("#not_running").val(0);
+	        	$("#other_cause").val('');
+	        	$("#OtherCause").hide();
+	        }
+    	});
+
+		$("#not_running").change(function () {
+	        if($("#not_running").val()==6){
+	        	$("#OtherCause").show();
+	        }
+	        else{
+	        	$("#OtherCause").hide();
+	        	$("#other_cause").val("");
+	        }
+    	});
+
+	});
+
+	function school_check(schcd,dt){
+			$("#preloader").fadeIn();
+			//alert(schcd);
+			//alert(dt);
+			db1.transaction(function(tx){
+			tx.executeSql('SELECT * FROM SupervisorInspectionForm WHERE School_Code = ? AND visiting_date_db = ?',[schcd,dt], function(tx, rs) {
+				
+				//alert(rs.rows.length);
+				
+				var len = rs.rows.length;
+			  	if(len>0)
+				{
+					alert("Inspection of this school is already done for today");
+					window.location= "School_Select_Supervisor.html";
+
+				}
+					
+			}, function(tx, error) {
+		    	  alert('SELECT error: ' + error.message);
+		   	});	
+
+			});
+			//$("#preloader").fadeOut();
+
+			//$("#preloader").fadeIn();
+		 	$.ajax({
+			type: "GET",
+			//url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_es_inspection_app/mdm_es_insp/check_school_es",
+			url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/check_school_es",
+			data:{
+			authuser:'16288adbe9a7cb4baeb0f0d8df7ba4bb',
+      		authpassword:'001b6d7734d59c236d8eef95842f254e',
+			visiting_date:local_date_db,
+			school_code_fk:localStorage.getItem("School_Code")
+			},
+			dataType:"JSON",
+			success: function(result)
+			{
+				console.log(JSON.stringify(result));
+				console.log(result.rows);
+				if(result.rows>0)
+				{
+				alert("Inspection of this school is already done for today");
+				window.location = "School_Select_Supervisor.html";
+				}
+				$("#preloader").fadeOut();
+			}
+			});
+	}
+
+	function checkLength(len,ele){
+          var fieldLength = ele.value.length;
+          if(fieldLength <= len){
+             
+            return true;
+          }
+          else
+          {
+            var str = ele.value;
+            str = str.substring(0, str.length - 1);
+            ele.value = str;
+          }
+        }
+
+    function isNumberKey(evt){
+	    var charCode = (evt.which) ? evt.which : evt.keyCode
+	    if (charCode > 31 && (charCode < 48 || charCode > 57))
+	        return false;
+	    return true;
+	}
+/////////////////////////////////////////////////////////////////////////////
+
+	function school_details(Sc){	
+
+	db1.transaction(function(tx){ 
+	tx.executeSql('SELECT * FROM School_List WHERE School_Code = ?',[Sc], function(tx, rs) {
+				//alert(rs.rows.length);
+				
+				var len = rs.rows.length;
+			  	if(len>0)
+				{
+					
+					localStorage.setItem("block_code",rs.rows.item(0).Block_Code);
+					localStorage.setItem("District_Name", rs.rows.item(0).District_Name);
+					
+
+					primary = parseInt(rs.rows.item(0).Pre_Primary);
+					 if(primary != 0)
+					 {
+						 $("#primary_div").show();
+						 $("#primary_present_div").show();
+						 $("#primary").html(primary);
+					 }
+					 if(primary == 0){
+					 	$("#primary_present").val(0);
+					 }
+					 upper_primary = parseInt(rs.rows.item(0).Upper_Primary);
+					 //console.log(primary+upper_primary);
+					 if(upper_primary !=0)
+					 {
+						 $("#upper_primary_div").show();
+						 $("#upper_primary_present_div").show();
+						 $("#upper_primary").html(upper_primary);
+					 }
+					 if(upper_primary == 0){
+					 	$("#upper_primary_present").val(0);
+					 }
+
+					 //enrollment = primary+upper_primary;
+					 //console.log(enrollment);
+
+
+					/*if(rs.rows.item(0).Pre_Primary > 0){
+				  	 	primary_div.style.display = 'block';
+						primary_div_pp.style.display ='block';
+					}
+					else{
+						p_details = 0;
+						p_present = 0;
+					}
+					if(rs.rows.item(0).Upper_Primary> 0){
+						upper_primary_div.style.display ='block';
+						upper_primary_div_up.style.display ='block';
+					}
+					else{
+						up_details = 0;
+						up_present = 0;
+					}*/
+					//console.log(rs.rows.item(0).School_Name,rs.rows.item(0).District_Name,rs.rows.item(0).Block_Name,rs.rows.item(0).Management_Name);
+					$(".label_data #sname").html(rs.rows.item(0).School_Name)
+					$(".label_data #dname").html(rs.rows.item(0).District_Name);
+					$(".label_data #bname").html(rs.rows.item(0).Block_Name);
+					$(".label_data #management").html(rs.rows.item(0).Management_Name);
+
+				}
+					
+	}, function(tx, error) {
+    	  alert('SELECT error: ' + error.message);
+   	});	
+
+	});
+
+    $("#preloader").fadeOut();
+}
+
+
+
+
+
+	///////////////////////////////////////////////
+///ofline insert////
+</script> 
+	</head>
+<body class="bg">
+<div id="preloader" style="display:none;">
+<div class="cssload-container">
+<div class="cssload-speeding-wheel"></div>
+</div>
+</div>
+<div class="state_project">
+	<div class="inner_header">
+    	<div class="container-fluid">
+        	<div class="row">
+            
+            	<div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_back_btn">
+                	<a href="javascript:history.back();"><img src="images/back.svg" class="img-responsive"></a>
+                </div>
+                </div>
+               
+				 <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="header_inner_logo_form">
+                    <img src="images/inner_logo.png" class="img-responsive">
+                </div>
+                </div>
+                <div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_home_btn">
+                	<a href="Dashboard.html"><img src="images/house.svg" class="img-responsive"></a>
+                </div>
+                </div>
+                
+            </div>
+            <div class="inner_header_bottom">
+                <h2>Education Supervisor Inspection Form</h2>  				
+            </div>
+        </div>
+    </div>
+     <!--<form name="inform_missing" id="validate" action="" method="post" autocomplete="off">-->
+    <div class="student_content">
+    	<div class="panel-group" >
+    <div class="panel panel-default">
+      <div class="panel-heading"  style="background-color:#ff980085;">
+        <h4 class="panel-title heading_color">
+          <a data-toggle="collapse" href="#collapse1" class="picture_width">School & Enrollment Information
+						<span class="glyphicon glyphicon-collapse-down move_right">			
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse1" class="panel-collapse collapse">
+        <!--<div class="panel-body">Panel Body</div>-->
+<div class="panel-body">
+
+<!------------------------------>
+
+<div class="row">
+<!----------------------------------------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head"><strong>District Name:</strong></label>
+ </div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+ <label class="head" name="dname" id="dname"></label>
+</div>
+</div>
+<!------------------------------------------->
+<!----------------------------------------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head"><strong>Block Name/ Municipality Name:</strong></label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="bname" id="bname"></label>
+</div>
+</div>
+<div class="clearfix"></div>
+
+<!------------------------------------------->
+<!----------------------------------------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head"><strong>Date of Visit:</strong></label>
+ </div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+ <label class="head" name="vistdate" id="vistdate"></label>
+ <!-- <input type="date" class="head input-number" name="date" id="date" style="width: 90%"> -->
+</div>
+</div>
+<!------------------------------------------->
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head"><strong>1. Name of School / Institution:</strong></label>
+ </div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+ <label class="head" name="sname" id="sname"></label>
+</div>
+</div>
+<!----------------------------------------->
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head"><strong>2. Management:</strong></label>
+ </div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+ <label class="head" name="management" id="management"></label>
+</div>
+</div>
+<!-------------------->
+<div class="col-md-12 col-sm-12 col-xs-12">
+<div class ="label_display">
+<label class="head"><strong>3. Student Enrolment:</strong></label>
+</div>
+
+</div>
+<!-------------------->	
+<div id="primary_div" style="display:none" >
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head"><strong>Primary</strong></label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="primary_enroll" id="primary"></label>
+</div>
+</div>
+
+</div>
+<div class="clearfix"></div>
+<!-------------------->
+<div id="upper_primary_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head"><strong>Upper Primary</strong></label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="upper_primary_enroll" id="upper_primary"></label>
+</div>
+</div>
+</div>
+<div class="clearfix"></div>
+<!-------------------->
+
+<!-------------------->
+
+<!-------------------->
+
+<!-------------------->
+
+<!------>
+
+<!----->
+
+<!--------------->
+
+<!--------------->
+
+<!-------------->
+
+<!------>
+
+<!------>
+
+<!------->
+</div>
+
+</div>
+<!-------------------last 1------------>
+
+
+<!---->
+</div>
+</div>        
+      </div>
+    </div>
+  </div>
+  <!----------panel end-->
+<!------------------------------------------------------------->
+  
+  
+ <!-----------------------------------------------> 
+ <!----------------------------------------------->
+ <div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+	  
+        <h4 class="panel-title heading_color">
+          <a data-toggle="collapse" href="#collapse3" class="picture_width">Inspection Form
+					  <span class="glyphicon glyphicon-collapse-down move_right">
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse3" class="panel-collapse collapse">
+        <div class="panel-body">
+		         <!---------------------->
+		                <!-- <div id="SAMDM" class="mbtm10">
+							(1)Number of students availed MDM on that day:*<br>
+							<input type="number" class="form-control input-field" name="StudentAvail" id="StudentAvail" value=""><br>
+						</div>-->
+						<!--==================================================================-->
+
+						<!-----------------------------------16-------------------->
+						<div id="MDMRun" class="mbtm10">
+						<strong>4. MDM Running:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="mdm_running">
+                        <label for="mdm_running" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------new--------------------------->
+						<div id="StudentAvail1" class="mbtm10" >
+						<strong>5.	Number of students availed MDM on that day:</strong><br>
+                        <!-- <div class="">
+						<div class="label_data">
+						<input type="number" class="input-number" name="total_mdm" size="5" id="total_mdm" style="width: 30%">
+						</div>
+						</div> -->
+						
+						<!------------------------------------------------------->
+						<div id="primary_present_div" style="display: none;">
+
+						<div class="col-md-6 col-sm-6 col-xs-6">
+						<div class ="label_display">
+						<label><strong>Primary</strong></label>
+						</div>
+
+						</div>
+						<div class="col-md-6 col-sm-6 col-xs-6">
+						<div class="label_data">
+						<input class="input-field" type="number" name="primary_present" id="primary_present" oninput="checkLength(4,this)" onkeypress="return isNumberKey(event)">
+						</div>
+						</div>
+
+						</div>
+						<div class="clearfix"></div>
+						<!-------------------->
+						<div id="upper_primary_present_div" style="display: none;">
+						<div class="col-md-6 col-sm-6 col-xs-6">
+						<div class ="label_display">
+						<label><strong>Upper Primary</strong></label>
+						</div>
+
+						</div>
+						<div class="col-md-6 col-sm-6 col-xs-6">
+						<div class="label_data">
+						<input class="form-control input-field" type="number" name="upper_primary_present" id="upper_primary_present" oninput="checkLength(4,this)" onkeypress="return isNumberKey(event)">
+						</div>
+						</div>
+						</div>
+						<div class="clearfix"></div>
+						</div>
+						<!------------------------------------------------------->
+						<!----------------------------new--------------------------->
+						<div id="MDMNotRunning" class="mbtm10" style="display: none;">
+						<strong>6.	Reason for not running MDM:</strong><br>
+                        <div class="">
+						<select id="not_running" class="form-control">
+							<option value="0">Please Select</option>
+							<option value="1">NON AVAILABILITY OF FOOD GRAINS</option>
+							<option value="2">NON AVAILABILITY OF FUNDS/COOKING COST/INGREDIENTS</option>
+							<option value="3">ABSENCE OF COOK-CUM-HELPERS</option>
+							<option value="4">FOOD NOT ARRIVED FROM NGO/SHG</option>
+							<option value="5">HOLIDAY IN SCHOOL</option>
+							<option value="6">OTHERS</option>
+						</select>
+						</div>
+						</div>
+						<!------------------------------------------------------->
+
+						
+						<div id="OtherCause" class="mbtm10"style="display: none;">
+							<strong>Please Specify Cause</strong><br>
+							<input class="form-control input-field" type="text" name="other_cause" id="other_cause">
+						</div>
+						<!-----------------------------------16-------------------->
+						<div id="StockRice" class="mbtm10">
+						<strong>7. Maintenance of one month's buffer stock (Rice):</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="StockR_check">
+                        <label for="StockR_check" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------new--------------------------->
+						<div id="CookingCost" class="mbtm10">
+						<strong>8.	Whether Cooking Cost recieved in advance:</strong><br>
+						<div class="toggleWrapper">
+							<input type="checkbox" id="cooking_cost">
+                        <label for="cooking_cost" class="toggle"><span class="toggle__handler"></span></label>
+						</div>
+                        <!-- <div class="">
+						<div class="label_data">
+						<input type="number" class="input-number" name="cooking_cost" size="5" id="cooking_cost" style="width: 30%">
+						</div>
+						</div> -->
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------15--------------------------->
+						<div id="Honorarium" class="mbtm10">
+						<strong>9.	Whether the Cook cum Helpers get honorarium regularly:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="Honor_check">
+                        <label for="Honor_check" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+
+						<!----------------------------new--------------------------->
+						<div id="SMS" class="mbtm10">
+						<strong>10.	Whether the School sends a daily report by SMS:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="daily_sms">
+                        <label for="daily_sms" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------9--------------------------->
+						<div id="DrinkingWater" class="mbtm10">
+						<strong>11.	Whether there is adequate drinking water facility in the school:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="drinking_water">
+                        <label for="drinking_water" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------10--------------------------->
+						<div id="ToiletUrinal" class="mbtm10">
+						<strong>12.	Whether Functional Toilet & Urinals available:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="toilet_urinal">
+                        <label for="toilet_urinal" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------19--------------------------->
+						<div id="ProperHygiene" class="mbtm10">
+						<strong>13.	Whether proper hygiene is maintained:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="proper_hygiene">
+                        <label for="proper_hygiene" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------new--------------------------->
+						<div id="ManPower" class="mbtm10">
+						<strong>14.	Whether manpower tie up has been made in the school under MGNREGA(inspection report of MGNREGA be jointly signed by the TIC/ HM & the Inspection official):</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="man_power">
+                        <label for="man_power" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------new--------------------------->
+						<div id="MDMCommittee" class="mbtm10">
+						<strong>15.	Whether School level MDM committee has been formed:</strong><br>
+						<div class="toggleWrapper">
+                        <input type="checkbox" id="mdm_committee">
+                        <label for="mdm_committee" class="toggle"><span class="toggle__handler"></span></label>
+                        </div>
+						</div>
+						<!------------------------------------------------------->
+
+						<!----------------------------24--------------------------->
+						<div id="Remarks">
+						<strong>16.	Remarks:*</strong><br>
+						<input type="text" value="" class="form-control input-field" onInput="checkLength(100,this)" onKeyPress="return check(event,value)" id="Remarks1" pattern="[a-zA-Z0-9!.,-/_&%()?]{6,25}"><br>
+						</div>
+						<!------------------------------------------------------->
+
+						<!--=================================================================-->
+		</div>
+      </div>
+    </div>
+  </div>
+ <!----------------------------------------------->
+ <!----------------------------------------------->
+  <div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+	  
+        <h4 class="panel-title heading_color">
+          <a data-toggle="collapse" href="#collapse4" class="picture_width">Photo
+					  <span class="glyphicon glyphicon-collapse-down move_right"></span>
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse4" class="panel-collapse collapse">
+        <div class="panel-body" id="Photo">
+        	<div class="camera">
+	    		<span class="camera_heading"><strong>Cooking</strong></span>
+	    		<div>
+	    			<!-- <img id="Image1" onclick="capturePhotoEdit(this.id);" src="images/img-load.jpg" class="img-responsive"> -->
+					<img id="Image1" onclick="capturePhoto(this.id);" src="images/img-load.jpg" class="img-responsive">
+	    		</div>
+	    	</div>
+	    	<div class="camera">
+	    		<span class="camera_heading"><strong>Dining hall</strong></span>
+	    		<div>
+	    			<!-- <img id="Image2" onclick="capturePhotoEdit(this.id);" src="images/img-load.jpg" class="img-responsive"> -->
+					<img id="Image2" onclick="capturePhoto(this.id);" src="images/img-load.jpg" class="img-responsive">
+	    		</div>
+	    		<div class="clearfix"></div>
+	    	</div>
+	    	<div class="camera">
+	    		<span class="camera_heading"><strong>Kitchen cum Store</strong></span>
+	    		<div>
+	    			<!-- <img id="Image3" onclick="capturePhotoEdit(this.id);" src="images/img-load.jpg" class="img-responsive"> -->
+					 <img id="Image3" onclick="capturePhoto(this.id);" src="images/img-load.jpg" class="img-responsive">
+	    		</div>
+	    		<div class="clearfix"></div>
+	    	</div>
+	    	<div class="camera">
+	    		<span class="camera_heading"><strong>Hand Wash/ Drinking Water</strong></span>
+	    		<div>
+	    			<!-- <img id="Image4" onclick="capturePhotoEdit(this.id);" src="images/img-load.jpg" class="img-responsive"> -->
+					 <img id="Image4" onclick="capturePhoto(this.id);" src="images/img-load.jpg" class="img-responsive">
+	    		</div>
+	    		<div class="clearfix"></div>
+	    	</div>
+	    	<div class="camera">
+	    		<span class="camera_heading"><strong>Other</strong></span>
+	    		<div>
+	    			<!-- <img id="Image5" onclick="capturePhotoEdit(this.id);" src="images/img-load.jpg" class="img-responsive"> -->
+					 <img id="Image5" onclick="capturePhoto(this.id);" src="images/img-load.jpg" class="img-responsive">
+	    		</div>
+	    		<div class="clearfix"></div>
+	    	</div>
+		</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-----------panel end-->
+ <!---------------------close it--------------------------------------> 
+ 
+
+			<div class="form-group custom_form">
+                  <button type="button" class="submit_btn" onclick="validate_supervisor();" >Submit</button>
+            </div>	  		 
+    </div>    
+</div>
+
+</body>
+</html>
