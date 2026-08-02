@@ -59,36 +59,97 @@ jobs:
           command -v apksigner && echo "✅ apksigner found" || echo "⚠️ apksigner not found (optional)"
       
       # ============================================
-      # INSTALL PYTHON DEPENDENCIES
+      # REPACKAGE FROM EXISTING DECOMPILED FOLDER
       # ============================================
-      - name: Install Python dependencies
+      - name: Repackage APK from decompiled folder
         run: |
-          if [ -f "requirements.txt" ]; then
-            pip install -r requirements.txt
+          # Check if decompiled folder exists
+          if [ ! -d "decompiled" ]; then
+            echo "❌ ERROR: decompiled folder not found in repository!"
+            echo "Please ensure the decompiled folder exists in the root directory"
+            exit 1
+          fi
+          
+          echo "📦 Repackaging from existing decompiled folder..."
+          
+          # Create workspace/output directory
+          mkdir -p workspace/output
+          
+          # Repackage using apktool
+          apktool b decompiled -o workspace/output/my_app_unsigned.apk
+          
+          echo "✅ APK repackaged successfully!"
+          ls -la workspace/output/
+      
+      # ============================================
+      # ALIGN THE APK (Optional)
+      # ============================================
+      - name: Align APK
+        run: |
+          if command -v zipalign &> /dev/null; then
+            echo "📐 Aligning APK..."
+            zipalign -v -p 4 workspace/output/my_app_unsigned.apk workspace/output/my_app_aligned.apk
+            echo "✅ APK aligned successfully!"
           else
-            echo "ℹ️ No requirements.txt found, skipping"
+            echo "⚠️ zipalign not found, skipping alignment"
+            cp workspace/output/my_app_unsigned.apk workspace/output/my_app_aligned.apk
           fi
       
       # ============================================
-      # RUN THE PYTHON MODDER
+      # SIGN THE APK
       # ============================================
-      - name: Run APK Modder
+      - name: Sign APK
         run: |
-          # Check if my.apk exists
-          if [ ! -f "my.apk" ]; then
-            echo "❌ ERROR: my.apk not found in root directory!"
-            echo "Please place your APK file as 'my.apk' in the root directory"
-            exit 1
+          echo "🔑 Signing APK..."
+          
+          # Generate debug keystore
+          keytool -genkey -v -keystore debug.keystore \
+            -alias debug \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US" \
+            -noprompt 2>/dev/null || true
+          
+          # Sign using apksigner or jarsigner
+          if command -v apksigner &> /dev/null; then
+            apksigner sign \
+              --ks debug.keystore \
+              --ks-key-alias debug \
+              --ks-pass pass:android \
+              --key-pass pass:android \
+              --out workspace/output/my_app_signed.apk \
+              workspace/output/my_app_aligned.apk
+            echo "✅ APK signed with apksigner!"
+          else
+            # Fallback to jarsigner
+            jarsigner -verbose \
+              -sigalg SHA1withRSA \
+              -digestalg SHA1 \
+              -keystore debug.keystore \
+              -storepass android \
+              -keypass android \
+              workspace/output/my_app_aligned.apk debug
+            mv workspace/output/my_app_aligned.apk workspace/output/my_app_signed.apk
+            echo "✅ APK signed with jarsigner (fallback)!"
           fi
           
-          # Check if Python script exists
-          if [ ! -f "apk_modder.py" ]; then
-            echo "❌ ERROR: apk_modder.py not found!"
-            exit 1
+          echo "📦 Signed APK:"
+          ls -la workspace/output/my_app_signed.apk
+      
+      # ============================================
+      # VERIFY THE SIGNED APK
+      # ============================================
+      - name: Verify APK
+        run: |
+          if command -v apksigner &> /dev/null; then
+            echo "🔍 Verifying APK signature..."
+            apksigner verify workspace/output/my_app_signed.apk && echo "✅ APK verification passed!" || echo "⚠️ APK verification failed"
+          else
+            echo "ℹ️ apksigner not available, skipping verification"
           fi
-          
-          # Run the modder
-          python apk_modder.py my.apk --work-dir workspace
       
       # ============================================
       # UPLOAD ARTIFACTS
@@ -99,48 +160,28 @@ jobs:
           name: modded-apk
           path: workspace/output/my_app_signed.apk
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
       
-      - name: Upload decompiled files
+      - name: Upload repackaged files (optional)
         uses: actions/upload-artifact@v4
         with:
-          name: decompiled-files
-          path: workspace/decompiled/
-          retention-days: 30
-          if-no-files-found: warn
-      
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: modding-logs
-          path: workspace/logs/
+          name: repackaged-files
+          path: workspace/output/
           retention-days: 7
           if-no-files-found: warn
       
       # ============================================
-      # PUSH DECOMPILED FILES TO REPOSITORY
+      # PUSH REPACKAGED APK TO REPO (Optional)
       # ============================================
-      - name: Push decompiled files to repository
-        if: success()
+      - name: Push APK to repository (optional)
+        if: false  # Set to 'true' if you want to commit the APK to your repo
         run: |
-          if [ -d "workspace/decompiled" ]; then
-            # Remove old decompiled folder from repo
-            git rm -rf decompiled 2>/dev/null || true
-            
-            # Copy decompiled to root
-            cp -r workspace/decompiled .
-            
-            # Commit and push
-            git config user.name "GitHub Actions Bot"
-            git config user.email "actions@github.com"
-            git add decompiled/
-            git commit -m "Update decompiled files [skip ci]" || echo "No changes to commit"
-            git push || echo "Push failed (may be no changes)"
-            
-            echo "✅ Decompiled files pushed to repository root: /decompiled/"
-          else
-            echo "⚠️ No decompiled folder found to push"
-          fi
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          cp workspace/output/my_app_signed.apk modded_app.apk
+          git add modded_app.apk
+          git commit -m "Add modded APK [skip ci]" || echo "No changes"
+          git push || echo "Push failed"
       
       # ============================================
       # WORKFLOW SUMMARY
@@ -151,17 +192,19 @@ jobs:
           echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
           echo "========================================="
           echo ""
-          echo "📦 Available Artifacts (Download from Actions tab):"
+          echo "📦 What happened:"
+          echo "  - Repackaged from existing 'decompiled/' folder"
+          echo "  - Aligned the APK"
+          echo "  - Signed with debug keystore"
+          echo ""
+          echo "📥 Download from Artifacts:"
           echo "  - modded-apk: Final signed APK"
-          echo "  - decompiled-files: Full decompiled structure"
-          echo "  - modding-logs: Detailed operation logs"
           echo ""
-          echo "📂 Decompiled files also available in repo: /decompiled/"
+          echo "📂 File locations:"
+          echo "  - Source: /decompiled/ (in your repo)"
+          echo "  - Output: workspace/output/my_app_signed.apk"
           echo ""
-          echo "📊 Output directory contents:"
-          ls -la workspace/output/ 2>/dev/null || echo "  (no output found)"
-          echo ""
-          echo "📊 Log directory contents:"
-          ls -la workspace/logs/ 2>/dev/null | head -5 || echo "  (no logs found)"
+          echo "📊 Output size:"
+          ls -lh workspace/output/my_app_signed.apk 2>/dev/null || echo "  (APK not found)"
           echo ""
           echo "========================================="
