@@ -79,13 +79,14 @@ class XAPKRebuilder:
         print(f"   Version: {self.version_name} ({self.version_code})")
     
     def create_apktool_yml(self, dir_path):
+        """Create apktool.yml with proper numeric values (no quotes around numbers)"""
         yml_file = dir_path / "apktool.yml"
         if yml_file.exists():
             return True
         
         manifest = dir_path / "AndroidManifest.xml"
-        min_sdk = "21"
-        target_sdk = "30"
+        min_sdk = 21
+        target_sdk = 30
         
         if manifest.exists():
             with open(manifest, 'r') as f:
@@ -97,6 +98,7 @@ class XAPKRebuilder:
                 if ts:
                     target_sdk = ts.group(1)
         
+        # IMPORTANT: NO quotes around numeric values!
         yml_content = f"""version: 2.0.0
 apkFileName: {dir_path.name}.apk
 isFrameworkApk: false
@@ -104,13 +106,13 @@ usesFramework:
   ids:
   - 1
 sdkInfo:
-  minSdkVersion: '{min_sdk}'
-  targetSdkVersion: '{target_sdk}'
+  minSdkVersion: {min_sdk}
+  targetSdkVersion: {target_sdk}
 packageInfo:
-  forcedPackageId: '127'
+  forcedPackageId: 127
 versionInfo:
-  versionCode: '{self.version_code}'
-  versionName: '{self.version_name}'
+  versionCode: {self.version_code}
+  versionName: "{self.version_name}"
 compressionType: false
 sharedLibrary: false
 unknownFiles: {{}}
@@ -148,7 +150,31 @@ doNotCompress: null
         with open(manifest_path, 'w', encoding='utf-8') as f:
             f.write(fixed_content)
         
-        print("   ✅ Force-replaced armv7_split/AndroidManifest.xml")
+        # Also fix apktool.yml for armv7_split
+        yml_path = self.decompiled_dir / "armv7_split" / "apktool.yml"
+        yml_content = '''version: 2.0.0
+apkFileName: armv7_split.apk
+isFrameworkApk: false
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: 21
+  targetSdkVersion: 30
+packageInfo:
+  forcedPackageId: 127
+versionInfo:
+  versionCode: 1
+  versionName: "1.0"
+compressionType: false
+sharedLibrary: false
+unknownFiles: {}
+doNotCompress: null
+'''
+        with open(yml_path, 'w') as f:
+            f.write(yml_content)
+        
+        print("   ✅ Force-replaced armv7_split/AndroidManifest.xml and apktool.yml")
         return True
     
     def clean_manifest(self, dir_path):
