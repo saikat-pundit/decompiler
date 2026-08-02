@@ -22,7 +22,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y wget
           
-          # Download apktool
           wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
           chmod +x apktool
           sudo mv apktool /usr/local/bin/
@@ -30,15 +29,17 @@ jobs:
           wget -q https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
           sudo mv apktool_2.9.3.jar /usr/local/bin/apktool.jar
       
-      - name: Prepare for apktool
+      - name: Move AndroidManifest and create apktool.yml
         run: |
-          # Apktool expects resources/ at root with AndroidManifest.xml inside it
-          # Move AndroidManifest.xml into resources/ if it's outside
+          # Ensure AndroidManifest is in resources/
           if [ -f "AndroidManifest.xml" ]; then
             mv AndroidManifest.xml resources/
           fi
           
-          # Create apktool.yml
+          # Go into resources directory
+          cd resources
+          
+          # Create apktool.yml inside resources/
           cat > apktool.yml << 'EOF'
           !brut.androlib.meta.MetaInfo
           apkFileName: app.apk
@@ -77,10 +78,14 @@ jobs:
             versionCode: '10907'
             versionName: 1.9.7
           EOF
+          
+          cd ..
       
-      - name: Build APK with apktool
+      - name: Build APK from resources
         run: |
-          apktool b resources/ -o app-unsigned.apk
+          cd resources
+          apktool b . -o ../app-unsigned.apk
+          cd ..
       
       - name: Generate debug keystore
         run: |
@@ -98,10 +103,12 @@ jobs:
           
           mv app-unsigned.apk app-signed.apk
       
-      - name: Verify APK
+      - name: Verify and upload APK
         run: |
           echo "APK size:"
           ls -lh app-signed.apk
+          echo "APK contents:"
+          unzip -l app-signed.apk | head -20
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
