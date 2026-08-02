@@ -17,47 +17,56 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
-      
-      - name: Create local.properties
+      - name: Install apktool
         run: |
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
-      
-      - name: Build APK using apktool
-        run: |
-          # Install apktool
           wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
           chmod +x apktool
           sudo mv apktool /usr/local/bin/
           wget -q https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
           sudo mv apktool_2.9.3.jar /usr/local/bin/apktool.jar
-          
-          # Rebuild APK
-          apktool b . -o app-unsigned.apk
       
-      - name: Generate debug keystore
+      - name: Install aapt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y aapt
+      
+      - name: Prepare AndroidManifest
+        run: |
+          # Copy AndroidManifest to root if needed
+          if [ -f "resources/AndroidManifest.xml" ] && [ ! -f "AndroidManifest.xml" ]; then
+            cp resources/AndroidManifest.xml .
+          fi
+      
+      - name: Build APK with aapt
+        run: |
+          mkdir -p build
+          
+          # Get android.jar
+          wget -q https://github.com/android/ndk/releases/download/r27c/android-ndk-r27c-linux.zip
+          unzip -q android-ndk-r27c-linux.zip
+          
+          # Build APK
+          aapt package -f \
+            -M AndroidManifest.xml \
+            -I android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/share/android-ndk/android.jar \
+            -F build/app-unsigned.apk \
+            resources/ sources/
+      
+      - name: Sign APK
         run: |
           keytool -genkey -v -keystore debug.keystore \
             -storepass android -alias androiddebugkey \
             -keypass android -keyalg RSA -keysize 2048 \
             -dname "CN=Android Debug, O=Android, C=US" \
             -validity 10000
-      
-      - name: Sign APK
-        run: |
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
-            --ks debug.keystore \
+          
+          # Sign with apksigner from Android NDK
+          apksigner sign --ks debug.keystore \
             --ks-pass pass:android \
             --key-pass pass:android \
-            app-unsigned.apk
+            build/app-unsigned.apk
           
-          mv app-unsigned.apk app-signed.apk
+          mv build/app-unsigned.apk app-signed.apk
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
