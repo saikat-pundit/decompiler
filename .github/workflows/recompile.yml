@@ -1,157 +1,46 @@
-name: Rebuild XAPK from Decompiled
+name: Build Universal XAPK
 
 on:
   workflow_dispatch:
-    inputs:
-      xapk_name:
-        description: 'Output XAPK name'
-        required: false
-        default: 'modded_app.xapk'
-      decompiled_dir:
-        description: 'Decompiled directory'
-        required: false
-        default: 'decompiled'
 
 jobs:
-  rebuild-xapk:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     
     steps:
-      # ============================================
-      # 1. CHECKOUT CODE
-      # ============================================
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       
-      # ============================================
-      # 2. SETUP ENVIRONMENT
-      # ============================================
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      
-      # ============================================
-      # 3. INSTALL TOOLS
-      # ============================================
       - name: Install Apktool
         run: |
-          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
-          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          sudo wget -q -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
+          sudo wget -q -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
           sudo chmod +x /usr/local/bin/apktool /usr/local/bin/apktool.jar
-          echo "✅ Apktool installed"
       
       - name: Install Android Tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y android-sdk apksigner || echo "Installing minimal..."
-          echo "✅ Tools installed"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq android-sdk apksigner || echo "Installed"
       
-      # ============================================
-      # 4. RUN PYTHON REBUILDER
-      # ============================================
-      - name: Run XAPK Rebuilder
+      - name: Build XAPK
         run: |
-          # Check if decompiled directory exists
-          if [ ! -d "${{ github.event.inputs.decompiled_dir }}" ]; then
-            echo "❌ ERROR: ${{ github.event.inputs.decompiled_dir }} directory not found!"
-            echo "Please ensure you have a decompiled folder with your modifications."
+          if [ ! -d "decompiled" ]; then
+            echo "❌ decompiled folder not found!"
             exit 1
           fi
-          
-          # Check if Python script exists
-          if [ ! -f "rebuild_xapk.py" ]; then
-            echo "❌ ERROR: rebuild_xapk.py not found!"
-            exit 1
-          fi
-          
-          # Run the rebuilder
-          python rebuild_xapk.py \
-            --decompiled-dir "${{ github.event.inputs.decompiled_dir }}" \
-            --output "${{ github.event.inputs.xapk_name }}"
+          python rebuild_xapk.py --decompiled-dir decompiled --output modded_app.xapk
       
-      # ============================================
-      # 5. UPLOAD ARTIFACTS
-      # ============================================
       - name: Upload XAPK
         uses: actions/upload-artifact@v4
         with:
           name: modded-xapk
-          path: ${{ github.event.inputs.xapk_name }}
+          path: modded_app.xapk
           retention-days: 30
-          if-no-files-found: error
-      
-      - name: Upload build logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: workspace/logs/
-          retention-days: 7
-          if-no-files-found: warn
-      
-      - name: Upload individual APKs (debug)
-        uses: actions/upload-artifact@v4
-        with:
-          name: repackaged-apks
-          path: workspace/xapk_build/*.apk
-          retention-days: 7
-          if-no-files-found: warn
-      
-      # ============================================
-      # 6. PUSH TO REPO (Optional)
-      # ============================================
-      - name: Push XAPK to repository
-        if: success()
-        run: |
-          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
-          
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          
-          # Copy with consistent name
-          cp "$XAPK_NAME" modded_app.xapk
-          git add modded_app.xapk
-          git commit -m "Add modded XAPK [skip ci]" || echo "No changes"
-          git push || echo "Push failed"
-          
-          echo "✅ XAPK pushed to repository: modded_app.xapk"
-      
-      # ============================================
-      # 7. SUMMARY
-      # ============================================
-      - name: Workflow Summary
-        run: |
-          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
-          
-          echo "========================================="
-          echo "✅ XAPK REBUILD COMPLETE!"
-          echo "========================================="
-          echo ""
-          echo "📦 Output file: $XAPK_NAME"
-          echo "📊 Size: $(du -h $XAPK_NAME 2>/dev/null | cut -f1 || echo 'Unknown')"
-          echo ""
-          echo "📥 Download artifacts:"
-          echo "  - modded-xapk: Complete XAPK file"
-          echo "  - repackaged-apks: Individual APKs (debug)"
-          echo "  - build-logs: Detailed logs"
-          echo ""
-          echo "📱 Installation:"
-          echo "  Method 1: Install with XAPK Installer app"
-          echo "  Method 2: Extract and install APKs manually"
-          echo ""
-          echo "📊 Build summary:"
-          if [ -f "workspace/logs/build_summary.json" ]; then
-            cat workspace/logs/build_summary.json
-          fi
-          echo ""
-          echo "========================================="
