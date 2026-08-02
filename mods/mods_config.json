@@ -1,51 +1,28 @@
 {
   "manifest": {
     "remove_permissions": [
-      "android.permission.READ_CONTACTS",
-      "android.permission.ACCESS_FINE_LOCATION"
+      "android.permission.READ_CONTACTS"
     ],
     "add_permissions": [
-      "android.permission.INTERNET",
-      "android.permission.ACCESS_NETWORK_STATE"
+      "android.permission.INTERNET"
     ],
     "modify_attributes": {
-      "android:versionName": "2.0.0",
-      "android:versionCode": "20"
+      "android:versionName": "2.0.0-Modded"
     }
   },
   "strings": {
     "replacements": {
-      "Original App Name": "My Modded App",
-      "Hello World": "Hello Modded World"
+      "Original App": "Modded App"
     }
   },
   "smali": {
-    "files": [
-      {
-        "path": "com/example/MainActivity.smali",
-        "replacements": [
-          {
-            "pattern": "const/4 v0, 0x1",
-            "replacement": "const/4 v0, 0x0"
-          }
-        ],
-        "insertions": [
-          {
-            "before": ".method public onCreate",
-            "text": "    # MOD: Custom code inserted\n    const-string v0, \"Modded!\"\n    invoke-static {v0}, Landroid/util/Log;->d(Ljava/lang/String;)I\n"
-          }
-        ]
-      }
-    ]
+    "files": []
   },
   "copy_files": {
     "source_dir": "mods/custom_files",
     "target_dir": "res/drawable"
   },
   "delete_files": {
-    "files": [
-      "res/drawable-hdpi/old_icon.png",
-      "assets/analytics/*.js"
-    ]
+    "files": []
   }
 }
