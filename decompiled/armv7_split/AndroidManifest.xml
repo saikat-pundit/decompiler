@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:splitTypes="base__abi" package="ins.mdm.app" split="config.armeabi_v7a">
-    <application android:extractNativeLibs="false" android:hasCode="false">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="ins.mdm.app" android:versionCode="1" android:versionName="1.0">
+    <application android:extractNativeLibs="true" android:hasCode="true">
         <meta-data android:name="com.android.vending.derived.apk.id" android:value="2"/>
     </application>
 </manifest>
