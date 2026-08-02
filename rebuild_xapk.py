@@ -33,7 +33,6 @@ class XAPKRebuilder:
             if result.returncode != 0:
                 print(f"❌ {desc} failed")
                 if result.stderr:
-                    # Show only first few lines of error
                     error_lines = result.stderr.strip().split('\n')[:3]
                     for line in error_lines:
                         print(f"   {line}")
@@ -50,43 +49,6 @@ class XAPKRebuilder:
             if item.is_dir() and (item / "AndroidManifest.xml").exists():
                 dirs.append(item)
         return dirs
-    
-    def clean_manifest(self, dir_path):
-        """Completely clean AndroidManifest.xml - remove split attributes and fix issues"""
-        manifest = dir_path / "AndroidManifest.xml"
-        if not manifest.exists():
-            return
-        
-        with open(manifest, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        # COMPLETELY REMOVE split-specific attributes (not rename them)
-        # These attributes are only valid in split APKs, not in regular APKs
-        
-        # Remove android:splitTypes attribute entirely
-        content = re.sub(r'\s+android:splitTypes="[^"]*"', '', content)
-        content = re.sub(r'\s+android:isSplitRequired="[^"]*"', '', content)
-        content = re.sub(r'\s+android:splitName="[^"]*"', '', content)
-        
-        # Also remove any other split-related attributes
-        content = re.sub(r'\s+android:configForSplit="[^"]*"', '', content)
-        
-        # Ensure extractNativeLibs is present (for compatibility)
-        if 'android:extractNativeLibs' not in content:
-            content = content.replace('<application ', '<application android:extractNativeLibs="true" ')
-        
-        # Fix versionCode if missing (add it)
-        if 'android:versionCode' not in content:
-            content = content.replace('<manifest ', f'<manifest android:versionCode="{self.version_code}" android:versionName="{self.version_name}" ')
-        
-        # Write cleaned manifest
-        with open(manifest, 'w', encoding='utf-8') as f:
-            f.write(content)
-        
-        # Also create a backup of original
-        backup = manifest.parent / f"{manifest.stem}.backup"
-        if not backup.exists():
-            shutil.copy2(manifest, backup)
     
     def extract_package_info(self):
         """Extract package info from first valid manifest"""
@@ -114,7 +76,6 @@ class XAPKRebuilder:
         if yml_file.exists():
             return True
         
-        # Get minSdk from manifest
         manifest = dir_path / "AndroidManifest.xml"
         min_sdk = "21"
         target_sdk = "30"
@@ -153,11 +114,47 @@ doNotCompress: null
             f.write(yml_content)
         return True
     
+    def clean_manifest(self, dir_path):
+        """Completely clean AndroidManifest.xml - remove split attributes and fix issues"""
+        manifest = dir_path / "AndroidManifest.xml"
+        if not manifest.exists():
+            return
+        
+        with open(manifest, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # COMPLETELY REMOVE split-specific attributes
+        content = re.sub(r'\s+android:splitTypes="[^"]*"', '', content)
+        content = re.sub(r'\s+android:isSplitRequired="[^"]*"', '', content)
+        content = re.sub(r'\s+android:splitName="[^"]*"', '', content)
+        content = re.sub(r'\s+android:configForSplit="[^"]*"', '', content)
+        
+        # FIX: Add versionCode and versionName to manifest tag if missing
+        if 'android:versionCode' not in content:
+            content = content.replace('<manifest ', f'<manifest android:versionCode="{self.version_code}" ')
+        if 'android:versionName' not in content:
+            # Check if versionCode was just added
+            if 'android:versionCode' in content and 'android:versionName' not in content:
+                content = content.replace('android:versionCode="' + self.version_code + '"', 
+                                         f'android:versionCode="{self.version_code}" android:versionName="{self.version_name}"')
+            else:
+                content = content.replace('<manifest ', f'<manifest android:versionName="{self.version_name}" ')
+        
+        # Ensure extractNativeLibs is present
+        if 'android:extractNativeLibs' not in content:
+            content = content.replace('<application ', '<application android:extractNativeLibs="true" ')
+        
+        # Write cleaned manifest
+        with open(manifest, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Create apktool.yml for this specific split
+        self.create_apktool_yml(dir_path)
+    
     def repackage(self):
         """Repackage all APKs"""
         print("📦 Repackaging APKs...")
         
-        # Find all decompiled directories
         apk_dirs = self.find_apk_dirs()
         if not apk_dirs:
             print("❌ No decompiled directories found!")
@@ -165,36 +162,24 @@ doNotCompress: null
         
         print(f"   Found {len(apk_dirs)} APK(s)")
         
-        # Extract package info first
         self.extract_package_info()
         
-        # Clean and repackage each
         for dir_path in apk_dirs:
             name = dir_path.name
             output = self.build_dir / f"{name}.apk"
             
-            # Clean the manifest (remove split attributes)
             print(f"   📦 {name}...", end=" ", flush=True)
-            self.clean_manifest(dir_path)
             
-            # Create apktool.yml if missing
-            if not self.create_apktool_yml(dir_path):
-                print("❌ (no apktool.yml)")
-                self.apks_failed.append(name)
-                continue
+            # Clean the manifest
+            self.clean_manifest(dir_path)
             
             # Repackage
             cmd = ['apktool', 'b', str(dir_path), '-o', str(output)]
             success = self._run_cmd(cmd, f"Building {name}")
             
-            if success and output.exists():
-                # Check if APK is valid (not empty)
-                if output.stat().st_size > 0:
-                    print("✅")
-                    self.apks_repackaged.append(f"{name}.apk")
-                else:
-                    print("❌ (empty APK)")
-                    self.apks_failed.append(name)
+            if success and output.exists() and output.stat().st_size > 0:
+                print("✅")
+                self.apks_repackaged.append(f"{name}.apk")
             else:
                 print("❌")
                 self.apks_failed.append(name)
@@ -214,7 +199,6 @@ doNotCompress: null
         if not apks:
             return False
         
-        # Generate keystore
         keystore = self.output_dir / "debug.keystore"
         if not keystore.exists():
             cmd = [
@@ -230,7 +214,6 @@ doNotCompress: null
             ]
             subprocess.run(cmd, capture_output=True)
         
-        # Sign each
         signed = 0
         for apk in apks:
             cmd = [
@@ -239,7 +222,6 @@ doNotCompress: null
                 '--ks-key-alias', 'debug',
                 '--ks-pass', 'pass:android',
                 '--key-pass', 'pass:android',
-                '--out', str(apk),  # Sign in-place
                 str(apk)
             ]
             if self._run_cmd(cmd, f"Signing {apk.name}"):
@@ -252,13 +234,11 @@ doNotCompress: null
         """Build XAPK"""
         print(f"📦 Building XAPK: {output_name}")
         
-        # Find all APKs
         apk_files = list(self.build_dir.glob("*.apk"))
         if not apk_files:
             print("❌ No APKs to package!")
             return False
         
-        # Create manifest
         splits = []
         for apk in apk_files:
             if apk.name != "ins_mdm_app.apk" and apk.name != "base.apk":
@@ -278,12 +258,10 @@ doNotCompress: null
         
         print(f"   📋 Manifest: {len(splits)} splits")
         
-        # Create XAPK
         try:
             with zipfile.ZipFile(output_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for file_path in self.build_dir.rglob("*"):
                     if file_path.is_file():
-                        # Skip signature files
                         if file_path.name.endswith('.idsig'):
                             continue
                         arcname = file_path.relative_to(self.build_dir)
@@ -302,32 +280,26 @@ doNotCompress: null
         print("🚀 XAPK Rebuilder")
         print("=" * 40)
         
-        # Check decompiled dir
         if not self.decompiled_dir.exists():
             print(f"❌ Directory not found: {self.decompiled_dir}")
             return False
         
-        # List what we found
         apk_dirs = self.find_apk_dirs()
         print(f"📂 Found {len(apk_dirs)} decompiled APK directories")
         for d in apk_dirs:
             print(f"   - {d.name}")
         
-        # Repackage
         if not self.repackage():
             print("❌ Repackaging failed completely")
             return False
         
-        # Sign
         if self.apks_repackaged:
             if not self.sign_apks():
                 print("⚠️ Signing had issues, continuing...")
         
-        # Build XAPK
         if not self.build_xapk(output_name):
             return False
         
-        # Summary
         print("=" * 40)
         print("✅ Done!")
         print(f"📦 Output: {output_name}")
