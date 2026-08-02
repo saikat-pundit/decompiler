@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>::MDM::</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta name="keywords" content="mdm,mdmes,mdminses,wbmdm,wbmdmes,ins.mdmes"/>
+	<meta name="description" content="west bengal mid day meal education supervisor inspection application"/>
+	<meta name="subject" content="mid day meal education supervisor inspection application">
+	<meta name="copyright"content="mdm">
+	<meta name="topic" content="mid day meal education supervisor inspection application">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.4.1.js"></script>
+    <script src='js/bootstrap.min.js'></script>
+    <!-- Bootstrap 3.3.4 -->
+    <link href="./css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="./css/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="./css/custom.css" rel="stylesheet" type="text/css">
+	<link href="./css/loader_style.css" rel="stylesheet" type="text/css">	
+    <link href="./css/font.css" rel="stylesheet" type="text/css">
+   <!--  <link href="https://fonts.googleapis.com/css?family=Oxygen:300,400,700&amp;subset=latin-ext" rel="stylesheet"> -->
+	<script src="cordova.js" type="text/javascript"></script>
+	<script src="cordova_plugins.js" type="text/javascript"></script>
+	<script>
+
+		var db;
+		document.addEventListener("deviceready", onDeviceReady, false)
+		function onDeviceReady(){
+			db = window.sqlitePlugin.openDatabase({name:"MDMSupervisor.db", location: 'default'});
+			School_Dropdown();
+		}
+		document.addEventListener("backbutton", onBackKeyDown, false); 
+
+		function onBackKeyDown() {
+  			window.location = "Dashboard.html";  
+		}
+
+
+
+		$(document).ready(function(){
+			
+	    $("#preloader").fadeIn();
+			$.ajax({
+		    type: "GET",
+		    //url: "https://mdm.wbsed.gov.in/mdm_app/mdm/token_check_final",
+		    //url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_es_inspection_app/mdm_es_insp/token_check_final",
+			url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm_es_insp/token_check_final",
+		    data:{
+			authuser:'16288adbe9a7cb4baeb0f0d8df7ba4bb',
+			authpassword:'001b6d7734d59c236d8eef95842f254e',
+		    token:localStorage.getItem("token"),
+		    phno:localStorage.getItem("phno")
+			},
+		    dataType:"JSON",
+		    success: function(result)
+		   {
+		     
+			 if(result.code=='1')
+			 {
+			    //////////////////////////////////////////////////////
+				   if(localStorage.getItem("stake_level_code") == '10')
+				   {
+				      
+				    /*$('#dist_div').hide();
+					$('#block_munc_corp_div').hide();*/
+					/*School_Dropdown();*/
+				   }
+				   
+			////////////////////////////////////
+		     }
+		     else if(result.code=='0')
+		      {
+		       alert(result.msg);
+		      }
+		    }
+		    });
+
+		    $("#preloader").fadeOut();
+		});
+
+		function School_Dropdown(){
+			db.transaction(function(tx){
+            tx.executeSql("SELECT * from School_List",[],function(tx,rs){
+            	var len = rs.rows.length;
+            	//alert(len);
+            	for (i=0;i<len;i++){
+            		var school_name = rs.rows.item(i)['School_Name'];
+					var school_code_pk= rs.rows.item(i)['School_Code'];	
+					var msg = "<option value='" + rs.rows.item(i)['School_Code'] +"'>" + rs.rows.item(i)['School_Name'] + "</option>";		
+					document.querySelector('#school').innerHTML +=  msg;
+            	}
+            
+            },function(error){
+                alert("failed");
+            },function(){
+                //alert(JSON.stringify(success));
+                alert("succes");
+
+            });
+        });
+		}
+
+	function schoollist(){
+
+		if($("#school").val()==''){
+				alert("Select school!");
+				$("#school").focus();
+				return false;
+		    }
+		var school_name = document.getElementById("school").options[document.getElementById("school").selectedIndex].text;
+		//alert(school_name);
+		localStorage.setItem("School_Name", school_name);
+		localStorage.setItem("School_Code", $("#school option:selected").val());
+		//window.location = "inspection_form.html";
+		window.location = "inspection_form_supervisor.html";
+
+	}
+
+
+	</script>
+</head>
+<body class="bg">
+	<div id="preloader" style="display:none;">
+<div class="cssload-container">
+<div class="cssload-speeding-wheel"></div>
+</div>
+</div>
+<div class="state_project">
+	<div class="inner_header">
+    	<div class="container-fluid">
+        	<div class="row">          
+            	<div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_back_btn">
+                	<a href="Dashboard.html"><img src="images/back.svg" class="img-responsive"></a>
+                </div>
+                </div>
+                <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="header_inner_logo">
+                    <img src="images/inner_logo.png" class="img-responsive">
+                </div>
+                </div>
+                <div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_home_btn">
+                	<a href="Dashboard.html"><img src="images/house.svg" class="img-responsive"></a>
+                </div>
+                </div>                
+            </div>
+            <div class="inner_header_bottom">
+                <h2>Select School</h2>         
+            </div>
+        </div>
+    </div>    
+    <div class="inner_content student_content">   	
+            <div class="filter_main">
+            	<div class="container-fluid">
+            		<h2 class="heading">FIlter Search</h2>
+                     <form>
+                      <div class="form-group custom_select">
+                        <label>Select School</label>
+                       <select data-style="btn-primary" name="school" id="school" >
+					 <option value="" selected="selected">School </option>
+				  </select>
+                      </div>
+                      <button type="button" class="btn btn-default" onclick="schoollist();">Submit</button>                      
+					</form> 
+                </div>
+            </div>		
+    </div>   
+</div>
+</body>
+</html>

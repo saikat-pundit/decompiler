@@ -1,0 +1,1265 @@
+@charset "utf-8";
+/* CSS Document */
+@font-face {
+  font-family: 'OpenSans';
+  src: url('../fonts/OpenSans.eot?v=4.5.0');
+  src: url('../fonts/OpenSans.eot?#iefix&v=4.5.0') format('embedded-opentype'), url('../fonts/OpenSans.woff2?v=4.5.0') format('woff2'), url('../fonts/OpenSans.woff?v=4.5.0') format('woff'), url('../fonts/OpenSans.ttf?v=4.5.0') format('truetype'), url('../fonts/OpenSans.svg?v=4.5.0#OpenSans') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Light.woff2') format('woff2'),
+        url('../fonts/Nunito-Light.woff') format('woff');
+    font-weight: 300;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Bold.woff2') format('woff2'),
+        url('../fonts/Nunito-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Regular.woff2') format('woff2'),
+        url('../fonts/Nunito-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Black.woff2') format('woff2'),
+        url('../fonts/Nunito-Black.woff') format('woff');
+    font-weight: 900;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'MeninBlue';
+    src: url('../fonts/MeninBlue.woff2') format('woff2'),
+        url('../fonts/MeninBlue.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+body{
+	background:#fff;
+	font-family: 'Nunito';
+	font-size:14px;
+}
+/*splash screen*/
+.splashscreen {
+    position: fixed;
+    z-index: 99999;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: url('../images/splash-screen_img.jpg') no-repeat 0 0 transparent;
+	background-size:cover;
+    transition: 2s 1s;
+}
+.splash_logo{ width:600px; height:400px; position:absolute; top:50%; left:50%; margin-left:-300px; margin-top:-200px; text-align:center;}
+.splash_logo img{ height:200px;}
+.splash_logo p{font-family: 'MeninBlue'; color:#fff; font-size:50px; text-align:center;}
+.splash_logo h5{ color:#FFF; font-weight:bold; font-size:24px;}
+
+/*login & otp screen*/
+.inner_screen_one_top {
+    position: relative;
+    height: 500px;
+	background:url(../images/inner_screen-bg.png) no-repeat bottom center;
+	background-size:100% 100%;
+}
+
+.inner_screen_one_top_content{
+	position: relative;
+	z-index: 90;
+}
+.inner_screen_one_top_content img {
+    width: 20%;
+    margin: 10% auto 2%;
+}
+.inner_screen_one_top_content p{font-family: 'MeninBlue'; color:#fff; font-size:72px; text-align:center;}
+.inner_screen_one_bottom {
+	text-align: center;
+	position: absolute;
+	width: 100%;
+	bottom: 0;
+}
+.inner_screen_one_bottom_content{}
+h2.inner_screen_one_bottom_heading {
+    text-align: center;
+    color: #000000;
+    font-size: 24px;
+    font-weight: bold;
+}
+p.inner_screen_one_bottom_sub_heading {
+    color: #99a2b3;
+    font-size: 30px;
+    text-align: center;
+}
+.inner_screen_one_bottom .login_text {
+    width: 70%;
+    background: transparent;
+    border-bottom: 1px solid #000000;
+    border-top: transparent;
+    border-left: transparent;
+    border-right: transparent;
+    margin: 30px 0 0;
+    text-align: center;
+    color: #000;
+    font-size: 30px;
+    font-weight: bold;
+	outline:none;
+}
+.inner_screen_one_bottom .login_text:focus{ outline:none;}
+.inner_screen_one_bottom .login_text::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: #000; font-weight:bold;
+}
+.inner_screen_one_bottom .login_text::-moz-placeholder { /* Firefox 19+ */
+  color: #000; font-weight:bold;
+}
+.inner_screen_one_bottom .login_text:-ms-input-placeholder { /* IE 10+ */
+  color: #000; font-weight:bold;
+}
+.inner_screen_one_bottom .login_text:-moz-placeholder { /* Firefox 18- */
+  color: #000; font-weight:bold;
+}
+.alert_box {width: 50%; background: transparent; border: 1px solid #b50000; padding: 8px 0; margin: 0 auto 25px;}
+.alert_box h2 {color: #b50000; font-weight: bold;}
+.alert_box p {font-size: 16px; color: #000;}
+/*.inner_screen_one_bottom input[type="submit"] {
+    width: 80%;
+    background: #07bc04;
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 0;
+    border: 0;
+    margin-bottom: 32px;
+    border-radius: 5px;
+    margin-top: 90px;
+}*/
+
+.submit_btn {
+    width: 80%;
+    background: #07bc04;
+    font-size: 16px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 0;
+    border: 0;
+    margin-bottom: 32px;
+    border-radius: 5px;
+    margin-top: 40px;
+}
+/*home screen*/
+/*.inner_header {background: #067ae5; padding: 10px 0;}*/
+.inner_header {
+    background: #067ae5;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 6px 5px;
+    z-index: 999;
+}
+.inner_header_right img{ float:right;}
+.top_home{ text-align:center; margin-top:90px;}
+.top_home h5 {font-size: 40px; color: #000000; margin-top: 24px;}
+.top_home h6 {font-size: 40px; color: #000000; margin-top: 24px;}
+.lightgreen_bg{ background:#68b52a;}
+.purpel_bg{background:#7278ca;}
+.deepgreen_bg{background:#1f5150;}
+.seagreen_bg{background:#00b99b;}
+.red_bg{background:#f45347;}
+.orange_bg{background:#f49019;}
+.bottom_link{
+	bottom:40px;
+	width:100%;	
+	margin-top: 50px;
+	margin-bottom: 60px;
+}
+.bottom_link .bottom_link_main{
+	text-align: center;
+	padding:15px;
+	text-decoration:none;
+	color:#FFF;
+	min-height:215px;
+	margin-bottom:30px;
+	-webkit-transition: all 300ms linear;
+    -moz-transition: all 300ms linear;
+    -o-transition: all 300ms linear;
+    -ms-transition: all 300ms linear;
+    transition: all 300ms linear;
+}
+.bottom_link .bottom_link_main p {
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 30px;
+	font-family: 'OpenSans';
+	height: 35px;
+	margin-top: 10px;
+	display: table;
+	width: 100%;
+	margin-bottom: 0;
+}
+.bottom_link .bottom_link_main p span{
+	display: table-cell;
+	width: 100%;
+	vertical-align: middle;
+}
+.bottom_link .bottom_link_main img{ max-height:120px;width:auto;}
+.bottom_link .bottom_link_main i{
+	color:#000;
+	font-size:50px;
+	background:#FFF;
+	padding:10px 12px;
+	border-radius:50%;
+	-webkit-border-radius:50%;
+	-moz-border-radius:50%;
+	-o-border-radius:50%;
+}
+.bottom_link .bottom_link_main:hover{
+	background: #333;
+}
+/*inspection list screen*/
+.inspection_list_main {
+    background: #f49019;
+    width: 100%;
+    position: relative;
+	padding: 14px 28px;
+	margin: 14px 0;
+}
+.inspection_list_main::after {position: absolute; content: url(../images/inspection_list_arrow.png); top: 9px; right: 30px; z-index: 999; line-height: 39px;}
+.inspection_list_main_text {
+    font-size: 34px;
+    color: #fff;
+}
+a:hover, a:focus {
+    text-decoration: none;
+}
+.inspection_list {
+    margin-top: 40px;
+}
+/*footer*/
+.footer{
+	position:fixed;
+	bottom:0;
+	width:100%;
+	background:#e4ecf4;
+	padding:0 5px;
+	height:55px;
+	z-index:999;	
+}
+.footer p{
+	margin: 12px 0;
+	color:#000;
+	font-size:24px;
+	text-align:center;
+}
+
+/*Inspection Insights screen (11.1.2018)*/
+.inspection_insights_bottom_link{
+	bottom:40px;
+	width:100%;	
+	margin-top: 50px;
+	margin-bottom: 60px;
+}
+.inspection_insights_bottom_link .bottom_link_main{
+	text-align: center;
+	padding:15px;
+	text-decoration:none;
+	background: linear-gradient(#f3f2f2, #f4f3f3);
+	border:1px solid #cccccc;
+	color:#FFF;
+	min-height:215px;
+	margin-bottom:30px;
+	-webkit-transition: all 300ms linear;
+    -moz-transition: all 300ms linear;
+    -o-transition: all 300ms linear;
+    -ms-transition: all 300ms linear;
+    transition: all 300ms linear;
+}
+.inspection_insights_bottom_link .bottom_link_main p {
+    font-size: 14px;
+    font-weight: bold;
+    font-size: 30px;
+	font-family: 'OpenSans';
+	height: 35px;
+	margin-top: 10px;
+	display: table;
+	width: 100%;
+	margin-bottom: 0;
+}
+.inspection_insights_bottom_link .bottom_link_main p span{
+	display: table-cell;
+	width: 100%;
+	vertical-align: middle;
+	color:#000000;
+}
+.inspection_insights_bottom_link .bottom_link_main h5 {
+    font-weight: 600;
+    font-size: 48px;
+	font-family: 'OpenSans';
+	height: 35px;
+	margin-top: 10px;
+	width: 100%;
+	margin-bottom: 20px;
+	color:#000000;
+}
+.inspection_insights_bottom_link .bottom_link_main img{ max-height:120px; width:auto; margin: 0 auto;}
+.inspection_insights_bottom_link .bottom_link_main i{
+	color:#000;
+	font-size:50px;
+	background:#FFF;
+	padding:10px 12px;
+	border-radius:50%;
+	-webkit-border-radius:50%;
+	-moz-border-radius:50%;
+	-o-border-radius:50%;
+}
+.inspection_insights_bottom_link .bottom_link_main:hover{
+	background: #ccc;
+}
+/*Inspection Insights screen (11.1.2018)*/
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+.organizational_infrastructure {margin-top: 30px; margin-bottom: 65px;}
+.organizational_infrastructure_main{background: linear-gradient(#f7f6f6, #efeeee); border-top:1px solid #ccc; border-bottom:1px solid #ccc; padding:0 15px; margin-bottom:20px; display:table; width:100%;}
+.organizational_infrastructure_main_left {
+    font-size: 24px;
+    color: #5d5d5d;
+    font-family: 'OpenSans';
+    font-weight: 600;
+    width: 75%;
+    display: table-cell;
+}
+.organizational_infrastructure_main_left span{ color:#000000;}
+.organizational_infrastructure_main_right {
+    width: 24%;
+    display: table-cell;
+    padding-left: 10px;
+}
+.checkbox-slider--a {
+  position: relative;
+}
+.checkbox-slider--a .organizational_infrastructure_toggle_btn {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 0%;
+  height: 0%;
+  margin: 0 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.checkbox-slider--a input + span {
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.checkbox-slider--a input + span:before {
+  position: absolute;
+  left: 0px;
+  display: inline-block;
+}
+.checkbox-slider--a input + span > h4 {
+  display: inline;
+}
+.checkbox-slider--a input + span {
+  padding-left: 40px;
+}
+.checkbox-slider--a input + span:before {
+  content: "";
+  height: 20px;
+  width: 40px;
+  background: #FFF;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+  transition: background 0.2s ease-out;
+}
+.checkbox-slider--a input + span:after {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  left: 0px;
+  top: 0;
+  display: block;
+  background: #ff0000;
+  transition: margin-left 0.1s ease-in-out;
+  text-align: center;
+  font-weight: bold;
+  content: "";
+}
+.checkbox-slider--a input:checked + span:after {
+  margin-left: 20px;
+  content: "";
+}
+.checkbox-slider--a input:checked + span:before {
+  transition: background 0.2s ease-in;
+}
+.checkbox-slider--a input + span {
+  padding-left: 60px;
+}
+.checkbox-slider--a input + span:before {
+  content: "";
+  width: 60px;
+}
+.checkbox-slider--a input + span:after {
+  width: 40px;
+  font-size: 10px;
+  color: #fff;
+  content: "No";
+  border: solid transparent 1px;
+  background-clip: content-box;
+}
+.checkbox-slider--a input:checked + span:after {
+  content: "Yes";
+  color: #fff;
+  background: #0daf0d;
+  border: solid transparent 1px;
+  background-clip: content-box;
+}
+.checkbox-slider--a.checkbox-slider-md input + span {
+  padding-left: 90px;
+}
+.checkbox-slider--a.checkbox-slider-md input + span:before {
+  width: 90px;
+}
+.checkbox-slider--a.checkbox-slider-md input + span:after {
+  width: 60px;
+  font-size: 15px;
+}
+.checkbox-slider--a.checkbox-slider-md input:checked + span:after {
+  margin-left: 30px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span {
+  padding-left: 88px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span:before {
+  width: 119px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span:after {
+  width: 100px;
+  font-size: 20px;
+}
+.checkbox-slider--a.checkbox-slider-lg input:checked + span:after {
+  margin-left: 19px;
+}
+
+.checkbox-slider-lg {
+  line-height: 40px;
+}
+.checkbox-slider-lg input + span {
+  padding-left: 80px;
+}
+.checkbox-slider-lg input + span:before {
+  width: 80px;
+}
+.checkbox-slider-lg input + span:after,
+.checkbox-slider-lg input + span:before {
+  height: 40px;
+  line-height: 40px;
+}
+.checkbox-slider-lg input + span:after {
+  width: 40px;
+  vertical-align: middle;
+}
+.checkbox-slider-lg input:checked + span:after {
+  margin-left: 40px;
+}
+.organizational_submit_btn {
+    width: 100%;
+    background: #07bc04;
+    font-size: 20px;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    padding: 20px 0;
+    border: 0;
+    margin-bottom: 0px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+/*Organizational Infrastructure screen (11.1.2018)*/
+
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list {margin-bottom: 60px;}
+.assignments_list_main{background: linear-gradient(#f3f2f2, #f4f3f3); border:1px solid #cccccc; padding:18px 28px; margin-top: 18px;}
+.assignments_list_main:last-child{ margin-bottom:25px;}
+.assignments_list_main_left{ width:24%; display:inline-block;}
+.assignments_list_main_right{ width:75%; display:inline-block; vertical-align:top;}
+.assignments_list_main_right h2 {font-size: 24px; color: #000; font-weight: 600; margin: 0; line-height: 1.3;}
+.assignments_list_main_right h3{font-size: 24px; color: #f12525; font-weight: 600; margin: 6px 0 0 0; line-height: 1.3;}
+.assignments_list_btn {font-size: 24px; color: #fff; padding: 10px 25px; font-weight: 600; margin: 20px 25px 0 0;}
+.assignments_list_btn:last-child{ margin:20px 0 0 0;}
+button.btn.btn-info.assignments_list_btn {background: #03cdf1; border-radius: 6px;}
+button.btn.btn-warning.assignments_list_btn {background: #ffa200; border-radius: 6px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.top_home h2 {color: #027d08; font-weight: 600; margin-top: 10px; margin-bottom:0; font-size:24px;}
+.top_home h3 {color: #f12525; font-weight: 600; margin-top: 4px; font-size:24px;}
+.training_center_list {margin-bottom: 60px;}
+.training_center_list_main{background: linear-gradient(#fcfff7, #f2f9e4); border:1px solid #03a149; padding:18px 28px; margin-top: 18px;}
+.training_center_list_main:last-child{ margin-bottom:25px;}
+.training_center_list_main h2 {font-size: 24px; color: #000; font-weight: 600; margin: 0; line-height: 1.3;}
+.training_center_list_main h3 {font-size: 24px; color: #000; font-weight: 600; margin: 0; line-height: 1.3; margin-top:6px;}
+.training_center_list_main h3 span{ color:#555555;}
+.training_center_list_btn {font-size: 24px; color: #fff; padding: 10px 25px; font-weight: 600; margin: 20px 18px 0 0;}
+.training_center_list_btn:last-child{ margin:20px 0 0 0;}
+.training_center_button_wrapper {text-align: right;}
+button.btn.btn-info.training_center_list_btn {background: #03cdf1; border-radius: 6px;}
+button.btn.btn-success.training_center_list_btn {background: #03a149; border-radius: 6px;}
+/*Training Centre Lists screen end (16.1.2018)*/
+
+/*profile screen start (16.1.2018)*/
+.profile_screen_top {position: relative; height: 365px; background: url(../images/inner_screen-bg.png) no-repeat bottom center; background-size: auto auto; background-size: 100% 100%;}
+.profile_screen_top_content {position: relative; z-index: 90; margin: 12%;}
+.profile_screen_top_content p { color: #fff; font-size: 48px; text-align: center; font-weight:600;}
+.profile_screen_top_content img { width: 30%; margin: 5% auto 2%; border-radius:100%; border:10px solid #fff;}
+.profile_logo{ margin-left:48%;}
+.profile_logo img{width:10%;}
+.profile_screen_main{margin-top: 133px; margin-bottom: 40px;}
+.profile_info {text-align: center;}
+.profile_info h2{ font-size:38px; color:#000; font-weight:600;}
+.profile_info ul{ margin:0; padding:0;}
+.profile_info ul li{ list-style:none; display:inline-block; border-right:1px solid #868585; padding:0 8px;}
+.profile_info ul li:last-child{ border-right:0;}
+.profile_info ul li a{ color:#555555; font-size:24px; font-weight:600;}
+
+/*******accordion start*******/
+.inner_content_section {
+    margin-bottom: 60px;
+}
+.panel {
+  border-width: 0 0 1px 0;
+  border-style: solid;
+  border-color: #fff;
+  background: none;
+  box-shadow: none;
+}
+
+.panel:last-child {
+  border-bottom: none;
+}
+
+.panel-group > .panel:first-child .panel-heading {
+  border-radius: 4px 4px 0 0;
+}
+
+.panel-group .panel {
+  border-radius: 0;
+}
+
+.panel-group .panel + .panel {
+  margin-top: 0;
+}
+
+.panel-heading {
+  background-color: #01bbb4;
+  border-radius: 0;
+  border: none;
+  color: #fff;
+  padding: 0;
+}
+
+.panel-title a {
+    display: block;
+    color: #fff;
+    padding: 15px 30px;
+    position: relative;
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.panel-body {
+  background: #EEE;
+}
+
+.panel:last-child .panel-body {
+  border-radius: 0 0 4px 4px;
+}
+
+.panel:last-child .panel-heading {
+  border-radius: 0 0 4px 4px;
+  transition: border-radius 0.3s linear 0.2s;
+}
+
+.panel:last-child .panel-heading.active {
+  border-radius: 0;
+  transition: border-radius linear 0s;
+}
+/* #bs-collapse icon scale option */
+
+.panel-heading a:before {
+  content: "\f055";
+  position: absolute;
+  font-family: 'FontAwesome';
+  right: 25px;
+  top: 10px;
+  font-size: 40px;
+  transition: all 0.5s;
+  transform: scale(1);
+}
+
+.panel-heading.active a:before {
+  content: ;
+  font-family: 'FontAwesome';
+  transition: all 0.5s;
+  transform: scale(0);
+}
+
+#bs-collapse .panel-heading a:after {
+  content: ;
+  font-size: 40px;
+  position: absolute;
+  font-family: 'FontAwesome';
+  right: 25px;
+  top: 10px;
+  transform: scale(0);
+  transition: all 0.5s;
+}
+
+#bs-collapse .panel-heading.active a:after {
+  content: "\f056";
+  transform: scale(1);
+  transition: all 0.5s;
+}
+/* #accordion rotate icon option */
+
+#accordion .panel-heading a:before {
+  content: "\f0fe";
+  font-size: 24px;
+  position: absolute;
+  font-family: 'FontAwesome';
+  right: 5px;
+  top: 10px;
+  transform: rotate(180deg);
+  transition: all 0.5s;
+}
+
+#accordion .panel-heading.active a:before {
+  transform: rotate(0deg);
+  transition: all 0.5s;
+}
+.wrap {
+  box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+.inner_content_section .panel-body {
+    padding: 15px 0;
+}
+.inner_content_section .panel-body ul{ margin:0; padding:0;}
+li.panel-body-details {
+    list-style: none;
+    border-bottom: 1px solid #9c9c9c;
+    padding: 20px 30px;
+}
+li.panel-body-details:last-child{ border-bottom:0;}
+div.panel-body-details-left {
+    width: 49%;
+	display:inline-block;
+    font-size: 30px;
+    color: #555555;
+    font-weight: 600;
+}
+div.panel-body-details-right {
+    width: 49%;
+	display:inline-block;
+    font-size: 30px;
+    color: #000000;
+    font-weight: 600;
+}
+/*******accordion end*******/
+
+/*profile screen end (16.1.2018)*/
+
+@media only screen and (max-width:1980px)
+{
+	.bottom_link .bottom_link_main p{ font-size:20px;}
+	.bottom_link .bottom_link_main{ min-height:200px;}
+	/*Inspection Insights screen (11.1.2018)*/
+	.inspection_insights_bottom_link .bottom_link_main p{ font-size:20px;}
+	.inspection_insights_bottom_link .bottom_link_main{ min-height:200px;}
+	/*Inspection Insights screen (11.1.2018)*/
+} 
+@media only screen and (max-width:1024px)
+{
+	.inspection_list_main_text {font-size: 24px;}
+	.inspection_list_main::after {position: absolute; content: url(../images/inspection_list_arrow_mobile.png); top: 13px; right: 30px; z-index: 999; line-height: 39px;}
+	.inspection_list_main {padding: 10px 28px; margin: 4px 0;}
+	.top_home img {width: 18%;}
+	.top_home {margin-top: 90px;}
+	.top_home h5 {font-size: 32px;}
+	.top_home h6 {font-size: 32px; margin-top: 12px;}
+	.inspection_list {margin-top: 17px;}
+	.inner_screen_one_bottom input[type="submit"]{margin-top: 50px;}
+	.inner_screen_one_top { height: 420px;}
+	.inner_screen_one_bottom {top: 450px;}
+	/*Organizational Infrastructure screen (11.1.2018)*/
+	.organizational_infrastructure_main_right {padding-left: 10px;}
+	.checkbox-slider--a.checkbox-slider-lg input + span {
+    padding-left: 84px;}
+	/*Organizational Infrastructure screen (11.1.2018)*/
+	
+	/*profile screen start (16.1.2018)*/
+	.profile_screen_top_content img {
+    width: 40%;
+    margin: 4% auto 2%;
+	/*profile screen end (16.1.2018)*/
+}
+@media only screen and (max-width:960px){
+
+/*profile screen start (16.1.2018)*/
+.profile_screen_top_content img {
+    width: 40%;
+    margin: 18% auto 2%;
+}
+/*profile screen end (16.1.2018)*/
+}
+@media only screen and (max-width:800px)
+{
+.splash_logo{ width:300px; height:300px;margin-left:-150px; margin-top:-150px; text-align:center;}
+.splash_logo img{ height:150px;}
+.splash_logo p{ font-size:36px;}
+.splash_logo h5{ font-size:16px;}
+.inner_header_left img {
+    width: 50%;
+}
+.inner_header_right img {
+    width: 50%;
+}
+.top_home h5 {
+    font-size: 28px;
+    margin-top: 16px;
+}
+.top_home h6 {
+    font-size: 28px;
+    margin-top: 18px;
+}
+.bottom_link {
+    margin-top: 15px;
+}
+.bottom_link .col-xs-6 {
+    padding-right: 5px;
+    padding-left: 5px;
+}
+.bottom_link .bottom_link_main {
+    margin-bottom: 10px;
+}
+.inspection_list {margin: 15px 10px;}
+.inner_screen_one_top { height: 480px;}
+.inner_screen_one_bottom {
+    top: 490px;
+}
+.top_home {margin-top: 65px;}
+.bottom_link .bottom_link_main p {
+    font-size: 16px;
+}
+.bottom_link .bottom_link_main p{ height:60px;}
+/*Inspection Insights screen (11.1.2018)*/
+.inspection_insights_bottom_link {
+    margin-top: 15px;
+}
+.inspection_insights_bottom_link .col-xs-6 {
+    padding-right: 5px;
+    padding-left: 5px;
+}
+.inspection_insights_bottom_link .bottom_link_main {
+    margin-bottom: 10px;
+}
+.inspection_insights_bottom_link .bottom_link_main p {
+    font-size: 16px;
+}
+.inspection_insights_bottom_link .bottom_link_main p{ height:60px;}
+.inspection_insights_bottom_link .bottom_link_main h5 {font-size: 38px; margin-bottom: 10px;}
+/*Inspection Insights screen (11.1.2018)*/
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+.organizational_infrastructure_main_right {
+    padding-left: 10px;
+}
+.organizational_submit_btn {
+    font-size: 20px;
+    padding: 12px 0;
+}
+/*Organizational Infrastructure screen (11.1.2018)*/
+
+/*profile screen start (16.1.2018)*/
+.profile_screen_top_content img {
+    width: 40%;
+    margin: 16% auto 2%;
+}
+div.panel-body-details-left {
+    font-size: 24px;
+}
+div.panel-body-details-right {
+    font-size: 24px;
+}
+.panel-title a {
+    font-size: 24px;
+}
+.panel-heading a::before{ font-size:30px;}
+#bs-collapse .panel-heading a::after {
+    font-size: 30px;
+}
+.profile_screen_main {
+    margin-top: 100px;
+}
+/*profile screen end (16.1.2018)*/
+}
+
+@media only screen and (max-width:767px)
+{
+.inspection_insights_bottom_link .bottom_link_main h5{ height:30px;}
+.inspection_insights_bottom_link .bottom_link_main p {
+    height: auto;
+	margin-top:0;
+}
+.inspection_insights_bottom_link .bottom_link_main{ padding:10px 0;}
+.inspection_insights_bottom_link .bottom_link_main h5 {font-size: 22px; margin-bottom: 0;margin-top: 5px; }
+.inner_screen_one_top {
+    height: 380px;
+}
+.bottom_link .bottom_link_main{ min-height: 150px;}
+.bottom_link .bottom_link_main p{ font-size:13px;}
+.bottom_link .bottom_link_main img{ max-height: 70px;}
+.footer {height: 35px;}
+.footer p{font-size:13px;}
+.top_home {margin-top: 55px;}
+.top_home h5 {font-size: 22px; margin-top: 8px;}
+.top_home h6 {font-size: 20px;  margin-top: 0px; margin-bottom: 0;}
+.top_home img {
+    width: 18%;
+}
+.inspection_list {margin: 15px 20px;}
+.inspection_list_main {
+    margin: 10px 0;
+}
+.inner_screen_one_bottom {
+    top: 385px;
+}
+.alert_box {width: 80%;}
+/*Inspection Insights screen (11.1.2018)*/
+.inspection_insights_bottom_link .bottom_link_main{ min-height: 150px;}
+.inspection_insights_bottom_link .bottom_link_main p{ font-size:13px;}
+.inspection_insights_bottom_link .bottom_link_main img{ max-height: 70px;}
+/*Inspection Insights screen (11.1.2018)*/
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+.organizational_infrastructure_main_left {
+    font-size: 16px;
+    width: 70%;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span::after{ font-size:16px;}
+.checkbox-slider--a.checkbox-slider-lg input + span {
+    padding-left: 72px;
+}
+/*Organizational Infrastructure screen (11.1.2018)*/
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_btn { font-size: 20px; margin: 20px 6px 0 0; padding: 10px 20px;}
+.assignments_list_main_left {width: 22%; margin-right: 12px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.top_home h2{ font-size:20px;}
+.top_home h3{ font-size:20px;}
+.training_center_list_main h2 {font-size: 18px;}
+.training_center_list_main h3 {font-size: 18px;}
+.training_center_list_btn { font-size: 18px; padding: 10px 16px; margin: 20px 6px 0 0;}
+/*Training Centre Lists screen end (16.1.2018)*/
+/*profile screen start (16.1.2018)*/
+.profile_screen_top {
+    height: 320px;
+}
+.profile_screen_top_content img {
+    margin: 18% auto 2%;
+}
+/*profile screen end (16.1.2018)*/
+}
+
+@media only screen and (max-width:600px){
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_btn {padding: 10px 16px;}
+.assignments_list_main_right { width: 74%;}
+.assignments_list_main_right h2 {font-size: 22px;}
+.assignments_list_main_right h3 {font-size: 22px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.top_home h2 {font-size: 18px;}
+.top_home h3 {font-size: 18px;}
+/*Training Centre Lists screen start (16.1.2018)*/
+
+/*Profile screen start (16.1.2018)*/
+.profile_screen_top_content img {
+    width: 40%;
+    margin: 20% auto 2%;
+}
+/*Profile screen start (16.1.2018)*/
+}
+
+@media only screen and (max-width:580px)
+{
+.checkbox-slider--a.checkbox-slider-lg input + span::after{ font-size:16px;}
+.checkbox-slider-lg input + span::after, .checkbox-slider-lg input + span::before {
+    height: 35px;
+    line-height: 35px;
+}
+.checkbox-slider-lg {
+    line-height: 35px;
+}
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_main_left {width: 22%;}
+.assignments_list_main_right { width: 74%;}
+.assignments_list_btn {font-size: 18px; margin: 20px 6px 0 0; padding: 10px 12px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Profile screen start (16.1.2018)*/
+.profile_screen_top {
+    height: 263px;
+}
+div.panel-body-details-left {
+    font-size: 22px;
+}
+div.panel-body-details-right {
+    font-size: 22px;
+}
+.profile_logo img {
+    width: 12%;
+}
+/*Profile screen end (16.1.2018)*/
+}
+
+@media only screen and (max-width:480px)
+{
+.inner_screen_one_top_content img {width: 30%;}
+.inner_screen_one_top_content p {font-size: 45px;}
+.inner_screen_one_top {height: 300px;}
+h2.inner_screen_one_bottom_heading {font-size: 24px;}
+p.inner_screen_one_bottom_sub_heading {font-size: 16px;}
+.inner_screen_one_bottom .login_text{ font-size:24px;}
+.inspection_list_main::after {position: absolute; content: url(../images/inspection_list_arrow_mobile.png); top: 9px; right: 30px; z-index: 999; line-height: 39px;}
+.inspection_list_main_text {
+    font-size: 16px;
+}
+.inspection_list_main {
+    padding: 14px 15px;
+}
+.inspection_list_main::after {
+    top: 13px;
+    right: 18px;
+}
+.bottom_link .bottom_link_main{ min-height: 125px;}
+.bottom_link .bottom_link_main img{ max-height: 50px;}
+/*Inspection Insights screen (11.1.2018)*/
+.inspection_insights_bottom_link .bottom_link_main{ min-height: 125px;}
+.inspection_insights_bottom_link .bottom_link_main img{ max-height: 50px;}
+.inspection_insights_bottom_link .bottom_link_main p {font-size: 12px;}
+/*Inspection Insights screen (11.1.2018)*/
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+.checkbox-slider--a.checkbox-slider-lg input + span::before {
+    width: 87px;
+}
+.organizational_infrastructure_main_left {
+    font-size: 15px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span {
+    padding-left: 34px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span::after {
+    width: 68px;
+}
+.organizational_submit_btn {
+    font-size: 20px;
+    padding: 8px 0;
+}
+/*Organizational Infrastructure screen (11.1.2018)*/
+
+/*Assignments List screen start (16.1.2018)*/
+
+.assignments_list_main {padding: 18px 12px;}
+.assignments_list_main_left {width: 24%; display: inline-block; margin-right: 12px;}
+.assignments_list_main_right {width: 70%;}
+.assignments_list_main_right h2 {font-size: 16px;}
+.assignments_list_main_right h3 {font-size: 16px;}
+.assignments_list_btn {font-size: 14px; padding: 7px 8px; font-weight: 500; margin: 20px 6px 0 0;}
+
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.top_home h2{ font-size:18px;}
+.top_home h3{ font-size:18px;}
+.training_center_list_main h2 {font-size: 16px;}
+.training_center_list_main h3 {font-size: 16px;}
+.training_center_list_btn { font-size: 16px; padding: 10px 16px; margin: 20px 6px 0 0;}
+/*Training Centre Lists screen end (16.1.2018)*/
+
+/*profile screen start (16.1.2018)*/
+.profile_logo img {
+    width: 15%;
+}
+.profile_screen_top {
+    height: 220px;
+}
+.profile_screen_top_content {
+    margin: 18% 0;
+}
+.profile_screen_top_content img {
+    margin: 8% auto 2%;
+}
+.profile_screen_main {
+    margin-top: 75px;
+}
+.profile_info h2 {
+    font-size: 24px;}
+.profile_info ul li a {
+    font-size: 14px;
+}
+.panel-title a {
+    font-size: 18px;
+}
+.panel-heading a::before {
+    font-size: 24px;
+}
+#bs-collapse .panel-heading a::after {
+    font-size: 24px;
+}
+div.panel-body-details-left {
+    font-size: 16px;
+}
+div.panel-body-details-right {
+    font-size: 16px;
+}
+.profile_screen_top_content p {
+    font-size: 34px;
+}
+li.panel-body-details {
+    padding: 20px 10px;
+}
+.panel-title a {
+    padding: 15px 12px;
+}
+.panel-heading a::before {
+    right: 10px;
+}
+#bs-collapse .panel-heading a::after {
+    right: 10px;
+}
+/*profile screen end (16.1.2018)*/
+}
+
+@media only screen and (max-width:400px)
+{
+.inner_screen_one_top {height: 230px;}
+.inner_screen_one_top_content p {font-size: 55px;}
+.inner_screen_one_bottom {margin-top: 85px;}
+.inner_screen_one_bottom {margin-top: 0; top: 300px;}
+
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_main_left {width: 22%;}
+.assignments_list_main_right { width: 72%;}
+.assignments_list_btn { font-size:12px; padding: 7px 5px; margin: 20px 2px 0 0;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.training_center_list_btn {padding: 10px 10px;}
+/*Training Centre Lists screen end (16.1.2018)*/
+
+/*Profile screen start (16.1.2018)*/
+.profile_screen_top_content img {
+    margin: 12% auto 2%;
+}
+/*Profile screen end (16.1.2018)*/
+
+}
+@media only screen and (max-height:600px){
+	.inner_screen_one_bottom input[type="submit"]{margin-top: 20px;}
+	.inspection_list {margin-bottom: 80px;}
+}
+@media only screen and (max-height:414px){
+	.top_home {margin-top: 8px;}
+	.top_home img {width: 14%;}
+	.top_home h5 {font-size: 18px; margin-top: 10px; margin-bottom:0;}
+	.top_home h6 {font-size: 18px; margin-top: 8px; margin-bottom:1%;}
+	.inspection_list {margin: 0 25px 60px; overflow: hidden;}
+	.inspection_list_main {padding: 5px 28px;}
+	.inspection_list_main_text {font-size: 18px;}
+	.inspection_list_main::after {top: 6px;}
+	.footer{ height:auto;}
+	.footer p{ font-size:15px;}
+	.inspection_list_main {margin: 10px 0;}
+	.inner_screen_one_bottom{top: 520px;}
+	.top_home {margin-top: 80px;}
+	
+}
+
+@media only screen and (max-width:320px){
+.bottom_link .bottom_link_main{ min-height: 100px;}
+.bottom_link .bottom_link_main p{ font-size:11px;}
+.inspection_list_main_text {font-size: 13px;}
+.top_home h5 {font-size: 22px; margin-top: 8px; margin-bottom: 6px;}
+.bottom_link {margin-top: 8px;}
+.inspection_list_main {
+    margin: 5px 0;
+}
+.inspection_list {
+    margin: 6px 20px;
+}
+.top_home h6 {
+    font-size: 14px;
+    margin-top: 0px;
+    margin-bottom: 0;
+}
+.top_home h5 {
+    font-size: 18px;
+    margin-top: 8px;
+    margin-bottom: 2px;
+}
+.bottom_link .bottom_link_main {
+    margin-bottom: 6px;
+}
+
+.bottom_link .bottom_link_main {
+    min-height: 88px;
+}
+.inner_screen_one_bottom {
+    top: 235px;
+}
+.alert_box p {
+    font-size: 14px;
+}
+/*Inspection Insights screen (11.1.2018)*/
+.inspection_insights_bottom_link .bottom_link_main{ min-height: 100px;}
+.inspection_insights_bottom_link .bottom_link_main p{ font-size:11px;}
+.inspection_insights_bottom_link {margin-top: 8px;}
+.inspection_insights_bottom_link .bottom_link_main {margin-bottom: 6px;}
+.inspection_insights_bottom_link .bottom_link_main {min-height: 88px;}
+.inspection_insights_bottom_link .bottom_link_main h5 {font-size: 22px;}
+/*Inspection Insights screen (11.1.2018)*/
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+.organizational_infrastructure_main_left {
+    font-size: 14px;
+    width: 56%;
+}
+.organizational_infrastructure_main_right {
+    padding-left: 18%;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span::before {
+    width: 60px;
+    height: 32px;
+    line-height: 32px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span::after {
+    width: 48px;
+    height: 32px;
+    line-height: 32px;
+}
+.checkbox-slider--a.checkbox-slider-lg input:checked + span::after {
+    margin-left: 12px;
+}
+.checkbox-slider--a.checkbox-slider-lg input + span::after {
+    font-size: 14px;
+}
+
+/*Organizational Infrastructure screen (11.1.2018)*/
+
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_main_right { width: 72%;}
+.assignments_list_main_right h2 {font-size: 14px;}
+.assignments_list_main_right h3 {font-size: 14px;}
+.assignments_list_btn {font-size: 11px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.training_center_list_main h2 {font-size: 14px;}
+.training_center_list_main h3 {font-size: 14px;}
+.training_center_list_btn { padding: 10px 8px; font-size: 14px; margin: 20px 4px 0 0;}
+/*Training Centre Lists screen end (16.1.2018)*/
+
+/*Profile screen start (16.1.2018)*/
+div.panel-body-details-left {
+    font-size: 14px;
+}
+div.panel-body-details-right {
+    font-size: 14px;
+}
+.panel-title a {
+    font-size: 15px;
+}
+.profile_info ul li a {
+    font-size: 13px;
+}
+.profile_screen_top_content img {
+    margin: 22% auto 2%;
+}
+.profile_logo {
+    margin-left: 45%;
+}
+.profile_logo img {
+    width: 20%;
+}
+.profile_screen_top_content {
+    margin: 30% 0;
+}
+.profile_screen_top_content img {
+    margin: 8% auto 2%;
+}
+/*Profile screen end (16.1.2018)*/
+}
+@media only screen and (max-height:280px){
+	.inspection_list_main::after {position: absolute; content: url(../images/inspection_list_arrow_small.png); top: -2px; right: 15px; z-index: 999; line-height: 39px;}
+	.inspection_list {margin: 6px 20px 50px;}
+	.inspection_list_main {padding: 5px 12px;}	
+	.inner_screen_one_bottom {top: 225px;}
+/*Assignments List screen start (16.1.2018)*/
+.assignments_list_main_left {width: 100%;}
+.assignments_list_main_left img{ margin:0 auto;}
+.assignments_list_main_right {width: 100%; text-align:center; margin-top:10px;}
+/*Assignments List screen end (16.1.2018)*/
+
+/*Training Centre Lists screen start (16.1.2018)*/
+.training_center_list_btn {
+    padding: 10px 9px;
+    font-size: 11px;
+    margin: 20px 2px 0 0;
+}
+/*Training Centre Lists screen end (16.1.2018)*/
+
+/*Profile screen end (16.1.2018)*/
+div.panel-body-details-left {
+    font-size: 12px;
+}
+.profile_screen_top_content img {
+    margin: 18% auto 2%;
+}
+.profile_info ul li a {
+    font-size: 11px;
+}
+.profile_screen_main {
+    margin-top: 45px;
+}
+/*Prodile screen end (16.1.2018)*/
+}
+@media only screen and (max-width:280px){
+	.inspection_list_main_text {font-size: 11px;}
+	.footer p {font-size: 11px;}
+}
+@media only screen and (max-device-width: 767px) and (orientation: landscape) {
+.inner_screen_one_bottom { position:inherit;}
+}

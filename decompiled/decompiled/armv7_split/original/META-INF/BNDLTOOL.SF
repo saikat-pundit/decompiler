@@ -1,0 +1,14 @@
+Signature-Version: 1.0
+Created-By: 1.0 (Android)
+SHA1-Digest-Manifest: Qp/pfTg9vVAtvYB4gcrJDroSTHc=
+X-Android-APK-Signed: 2, 3
+
+Name: AndroidManifest.xml
+SHA1-Digest: 3utYiNg/P59/3/t9aEe8cs6LZRg=
+
+Name: lib/armeabi-v7a/libsqlc-ndk-native-driver.so
+SHA1-Digest: IZmgQeiLYMvNHOa5w7flfb+ve6k=
+
+Name: stamp-cert-sha256
+SHA1-Digest: Bs40BvDZ1xrbgQrPTD2x5w/NfHQ=
+

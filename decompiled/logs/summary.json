@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-08-02T13:16:29.793999",
+  "xapk_file": "my.xapk",
+  "xapk_size": 6863386,
+  "extract_dir": "decompiled/extracted",
+  "decompiled_dir": "decompiled/decompiled",
+  "results": {
+    "ins.mdm.app.apk": true,
+    "config.bn.apk": true,
+    "config.te.apk": true,
+    "config.mr.apk": true,
+    "config.xhdpi.apk": true,
+    "config.gu.apk": true,
+    "config.ta.apk": true,
+    "config.kn.apk": true,
+    "config.en.apk": true,
+    "config.hi.apk": true,
+    "config.armeabi_v7a.apk": true
+  },
+  "success": true
+}

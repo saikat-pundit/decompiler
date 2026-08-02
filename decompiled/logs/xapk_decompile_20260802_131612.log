@@ -1,0 +1,101 @@
+2026-08-02 13:16:12,373 - INFO - 🔧 XAPK Decompiler initialized
+2026-08-02 13:16:12,373 - INFO - 📝 Log file: decompiled/logs/xapk_decompile_20260802_131612.log
+2026-08-02 13:16:12,373 - INFO - ==================================================
+2026-08-02 13:16:12,373 - INFO - 🚀 Starting XAPK Decompilation Pipeline
+2026-08-02 13:16:12,374 - INFO - ==================================================
+2026-08-02 13:16:12,374 - INFO - 📦 Extracting XAPK...
+2026-08-02 13:16:12,387 - INFO - ✅ XAPK extracted to: decompiled/extracted
+2026-08-02 13:16:12,387 - INFO - 📁 Extracted contents:
+2026-08-02 13:16:12,388 - INFO -   📄 config.armeabi_v7a.apk (631,223 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.bn.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.en.apk (37,273 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.gu.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.hi.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.kn.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.mr.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.ta.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.te.apk (24,985 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 config.xhdpi.apk (67,263 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 ins.mdm.app.apk (5,950,019 bytes)
+2026-08-02 13:16:12,388 - INFO -   📄 manifest.json (1,115 bytes)
+2026-08-02 13:16:12,389 - INFO - 📱 Found 11 APK files:
+2026-08-02 13:16:12,389 - INFO -   - ins.mdm.app.apk (5,950,019 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.bn.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.te.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.mr.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.xhdpi.apk (67,263 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.gu.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.ta.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.kn.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.en.apk (37,273 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.hi.apk (24,985 bytes)
+2026-08-02 13:16:12,389 - INFO -   - config.armeabi_v7a.apk (631,223 bytes)
+2026-08-02 13:16:12,389 - INFO - 🔍 Decompiling: ins.mdm.app.apk
+2026-08-02 13:16:12,389 - INFO - 🔄 Running: apktool d decompiled/extracted/ins.mdm.app.apk -o decompiled/decompiled/ins_mdm_app -f
+2026-08-02 13:16:12,389 - INFO - 📝 Decompiling ins.mdm.app.apk
+2026-08-02 13:16:16,662 - INFO - ✅ Command successful
+2026-08-02 13:16:16,662 - INFO - ✅ Decompiled to: decompiled/decompiled/ins_mdm_app
+2026-08-02 13:16:16,662 - INFO - 🔍 Decompiling: config.bn.apk
+2026-08-02 13:16:16,662 - INFO - 🔄 Running: apktool d decompiled/extracted/config.bn.apk -o decompiled/decompiled/config_bn -f
+2026-08-02 13:16:16,662 - INFO - 📝 Decompiling config.bn.apk
+2026-08-02 13:16:17,759 - INFO - ✅ Command successful
+2026-08-02 13:16:17,759 - INFO - ✅ Decompiled to: decompiled/decompiled/config_bn
+2026-08-02 13:16:17,759 - INFO - 🔍 Decompiling: config.te.apk
+2026-08-02 13:16:17,759 - INFO - 🔄 Running: apktool d decompiled/extracted/config.te.apk -o decompiled/decompiled/config_te -f
+2026-08-02 13:16:17,759 - INFO - 📝 Decompiling config.te.apk
+2026-08-02 13:16:19,061 - INFO - ✅ Command successful
+2026-08-02 13:16:19,061 - INFO - ✅ Decompiled to: decompiled/decompiled/config_te
+2026-08-02 13:16:19,062 - INFO - 🔍 Decompiling: config.mr.apk
+2026-08-02 13:16:19,062 - INFO - 🔄 Running: apktool d decompiled/extracted/config.mr.apk -o decompiled/decompiled/config_mr -f
+2026-08-02 13:16:19,062 - INFO - 📝 Decompiling config.mr.apk
+2026-08-02 13:16:20,236 - INFO - ✅ Command successful
+2026-08-02 13:16:20,236 - INFO - ✅ Decompiled to: decompiled/decompiled/config_mr
+2026-08-02 13:16:20,236 - INFO - 🔍 Decompiling: config.xhdpi.apk
+2026-08-02 13:16:20,236 - INFO - 🔄 Running: apktool d decompiled/extracted/config.xhdpi.apk -o decompiled/decompiled/config_xhdpi -f
+2026-08-02 13:16:20,237 - INFO - 📝 Decompiling config.xhdpi.apk
+2026-08-02 13:16:22,524 - INFO - ✅ Command successful
+2026-08-02 13:16:22,524 - INFO - ✅ Decompiled to: decompiled/decompiled/config_xhdpi
+2026-08-02 13:16:22,524 - INFO - 🔍 Decompiling: config.gu.apk
+2026-08-02 13:16:22,524 - INFO - 🔄 Running: apktool d decompiled/extracted/config.gu.apk -o decompiled/decompiled/config_gu -f
+2026-08-02 13:16:22,524 - INFO - 📝 Decompiling config.gu.apk
+2026-08-02 13:16:23,710 - INFO - ✅ Command successful
+2026-08-02 13:16:23,710 - INFO - ✅ Decompiled to: decompiled/decompiled/config_gu
+2026-08-02 13:16:23,710 - INFO - 🔍 Decompiling: config.ta.apk
+2026-08-02 13:16:23,710 - INFO - 🔄 Running: apktool d decompiled/extracted/config.ta.apk -o decompiled/decompiled/config_ta -f
+2026-08-02 13:16:23,710 - INFO - 📝 Decompiling config.ta.apk
+2026-08-02 13:16:24,912 - INFO - ✅ Command successful
+2026-08-02 13:16:24,913 - INFO - ✅ Decompiled to: decompiled/decompiled/config_ta
+2026-08-02 13:16:24,913 - INFO - 🔍 Decompiling: config.kn.apk
+2026-08-02 13:16:24,913 - INFO - 🔄 Running: apktool d decompiled/extracted/config.kn.apk -o decompiled/decompiled/config_kn -f
+2026-08-02 13:16:24,913 - INFO - 📝 Decompiling config.kn.apk
+2026-08-02 13:16:26,129 - INFO - ✅ Command successful
+2026-08-02 13:16:26,129 - INFO - ✅ Decompiled to: decompiled/decompiled/config_kn
+2026-08-02 13:16:26,129 - INFO - 🔍 Decompiling: config.en.apk
+2026-08-02 13:16:26,129 - INFO - 🔄 Running: apktool d decompiled/extracted/config.en.apk -o decompiled/decompiled/config_en -f
+2026-08-02 13:16:26,129 - INFO - 📝 Decompiling config.en.apk
+2026-08-02 13:16:27,306 - INFO - ✅ Command successful
+2026-08-02 13:16:27,306 - INFO - ✅ Decompiled to: decompiled/decompiled/config_en
+2026-08-02 13:16:27,306 - INFO - 🔍 Decompiling: config.hi.apk
+2026-08-02 13:16:27,307 - INFO - 🔄 Running: apktool d decompiled/extracted/config.hi.apk -o decompiled/decompiled/config_hi -f
+2026-08-02 13:16:27,307 - INFO - 📝 Decompiling config.hi.apk
+2026-08-02 13:16:28,600 - INFO - ✅ Command successful
+2026-08-02 13:16:28,600 - INFO - ✅ Decompiled to: decompiled/decompiled/config_hi
+2026-08-02 13:16:28,600 - INFO - 🔍 Decompiling: config.armeabi_v7a.apk
+2026-08-02 13:16:28,600 - INFO - 🔄 Running: apktool d decompiled/extracted/config.armeabi_v7a.apk -o decompiled/decompiled/armv7_split -f
+2026-08-02 13:16:28,600 - INFO - 📝 Decompiling config.armeabi_v7a.apk
+2026-08-02 13:16:29,792 - INFO - ✅ Command successful
+2026-08-02 13:16:29,792 - INFO - ✅ Decompiled to: decompiled/decompiled/armv7_split
+2026-08-02 13:16:29,792 - INFO - 🔍 Analyzing decompiled structure...
+2026-08-02 13:16:29,793 - INFO - 📊 Analysis Results:
+2026-08-02 13:16:29,793 - INFO -   Total APKs decompiled: 11
+2026-08-02 13:16:29,793 - INFO -   Architectures found: armeabi-v7a
+2026-08-02 13:16:29,793 - INFO -   armeabi-v7a: 1 .so files
+2026-08-02 13:16:29,793 - INFO -   Has resources: True
+2026-08-02 13:16:29,793 - INFO -   Has smali: True
+2026-08-02 13:16:29,794 - INFO - 📊 Summary saved to: decompiled/logs/summary.json
+2026-08-02 13:16:29,794 - INFO - ==================================================
+2026-08-02 13:16:29,794 - INFO - ✅ XAPK Decompilation Complete!
+2026-08-02 13:16:29,794 - INFO - ==================================================
+2026-08-02 13:16:29,794 - INFO - 📁 Decompiled files: decompiled/decompiled
+2026-08-02 13:16:29,794 - INFO - 📊 Analysis: 11 APKs, 1 architectures
+2026-08-02 13:16:29,794 - INFO - ==================================================

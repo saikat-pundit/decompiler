@@ -1,0 +1,11 @@
+version: 3.0.3
+apkFileName: config.te.apk
+usesFramework:
+  ids:
+  - 1
+versionInfo:
+  versionCode: 10907
+resourcesInfo:
+  packageId: 127
+doNotCompress:
+- arsc

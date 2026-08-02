@@ -1,0 +1,6 @@
+version: 3.0.3
+apkFileName: config.armeabi_v7a.apk
+versionInfo:
+  versionCode: 10907
+doNotCompress:
+- so

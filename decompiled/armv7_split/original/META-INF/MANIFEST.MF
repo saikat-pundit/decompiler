@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+
+Name: AndroidManifest.xml
+SHA1-Digest: 5yKMwSYhlZDPV3xg63Nx5D8DWO8=
+
+Name: lib/armeabi-v7a/libsqlc-ndk-native-driver.so
+SHA1-Digest: Hs6eOvOx2HjTm6K6Vr//nwiFTjc=
+
+Name: stamp-cert-sha256
+SHA1-Digest: 5vTkm69vqAbusD/fho7oWwc7j+I=
+

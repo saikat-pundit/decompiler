@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>::MDM::</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <style>
+        /* following two viewport lines are equivalent to the meta viewport statement above, needed for Windows */
+        /* see http://www.quirksmode.org/blog/archives/2014/05/html5_dev_conf.html and http://dev.w3.org/csswg/css-device-adapt/ */
+        @-ms-viewport { width: 100vw ; zoom: 100% ; }  @viewport { width: 100vw ; zoom: 100% ; }
+        @-ms-viewport { user-zoom: fixed ; }           @viewport { user-zoom: fixed ; }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.4.1.js"></script>
+    <script src='js/bootstrap.min.js'></script>
+	<script src='js/crypto.js'></script>
+    <!-- Bootstrap 3.3.4 -->
+    <link href="./css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="./css/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="./css/custom.css" rel="stylesheet" type="text/css">
+	<link href="./css/loader_style.css" rel="stylesheet" type="text/css">
+	<link href="./css/formstyle.css" rel="stylesheet" type="text/css" media="all"/>
+	<script src="cordova.js" type="text/javascript"></script>
+	<script src="cordova_plugins.js" type="text/javascript"></script>  
+	<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
+	<script>
+
+	$( document ).ready(function() {
+		of_history_details(localStorage.getItem("officer_inspid"));
+	});
+
+	///////////////////////////////////////////
+
+	document.addEventListener("backbutton", onBackKeyDown, false); 		   
+	function onBackKeyDown() {
+		window.location = "officer_history.html";
+	}
+	
+	function of_history_details(insid){	
+		$("#preloader").fadeIn();
+		$.ajax({
+				type: "GET",
+				//url: "https://mdm.wbsed.gov.in/Inspection_Apps/mdm_inspection_app/mdm/officer_school_inspection_data",
+				//url: "http://192.168.0.101:80/rtds1/Inspection_Apps/mdm_inspection_app/mdm/officer_school_inspection_data",
+				url: "https://pmposhan.wb.gov.in/Inspection_Apps/Mdm/officer_school_inspection_data",
+				data:{
+				authuser:'16288adbe9a7cb4baeb0f0d8df7ba4bb',
+	            authpassword:'001b6d7734d59c236d8eef95842f254e',
+				inspection_code:insid
+				},
+				dataType:"JSON",
+				success: function(result)
+				{
+					console.log(JSON.stringify(result));
+					console.log(result.rows);
+					if(result.rows == '0')
+					{
+						alert("No Inspection Data");
+						window.location ="es_school_list_history.html";
+					}
+					else
+					{
+						//console.log(result.data);
+						var date = result.data[0].mdm_cash_book_maintained_upto;
+						var dd = date.substr(8,2);
+						var mm = date.substr(5,2);
+						var yy = date.substr(0,4);
+						var cashbook_updated_date = dd+'-'+mm+'-'+yy;
+						$(".label_data #sname").html(result.data[0].school_name);
+						$(".label_data #schcd").html(result.data[0].schcd);
+						$(".label_data #category_name").html(result.data[0].category_name);
+						$(".label_data #type_name").html(result.data[0].type_name);
+						$(".label_data #management_name").html(result.data[0].management_name);
+						$(".label_data #mdm_in_charge_name1").html(result.data[0].mdm_in_charge_name);
+						$(".label_data #contact_no1").html(result.data[0].contact_no);
+						if(result.data[0].pre_primary_applicable_status==1){
+							$("#pre_primary_div").show();
+							$(".label_data #pre_primary").html(result.data[0].pre_primary_enroll);
+							$("#Class_i_div").show();
+							$(".label_data #class_i").html(result.data[0].class_i_enroll);
+							$("#Class_ii_div").show();
+							$(".label_data #class_ii").html(result.data[0].class_ii_enroll);
+							$("#Class_iii_div").show();
+							$(".label_data #class_iii").html(result.data[0].class_iii_enroll);
+							$("#Class_iv_div").show();
+							$(".label_data #class_iv").html(result.data[0].class_iv_enroll);
+						}
+						if(result.data[0].class_v_applicable_status==1){
+							$("#Class_v_div").show();
+							$(".label_data #class_v").html(result.data[0].class_v_enroll);
+							$("#Class_vi_div").show();
+							$(".label_data #class_vi").html(result.data[0].class_vi_enroll);
+							$("#Class_vii_div").show();
+							$(".label_data #class_vii").html(result.data[0].class_vii_enroll);
+							$("#Class_viii_div").show();
+							$(".label_data #class_viii").html(result.data[0].class_viii_enroll);
+						}
+						/*if(result.data[0].class_ix_x_enroll==''){
+							$("#Class_ix_x_Class_xi_xii").hide();
+						}
+						else{
+							$("#Class_ix_x_Class_xi_xii").show();
+							$(".label_data #class_ix_x_enroll").val(result.data[0].class_ix_x_enroll);
+						}
+						if(result.data[0].class_xi_xii_enroll==''){
+							$("#Class_ix_x_Class_xi_xii").hide();
+						}
+						else{
+							$("#Class_ix_x_Class_xi_xii").show();
+							$(".label_data #class_xi_xii_enroll").val(result.data[0].class_xi_xii_enroll);
+						}*/
+						$(".label_data #regular_teacher").val(result.data[0].regular_teacher);
+						$(".label_data #para_teacher").val(result.data[0].para_teacher);
+						$(".label_data #contractual_teacher").val(result.data[0].contractual_teacher);
+						if(result.data[0].own_drinking_water_source=="1"){
+							$("#other_drinking_water_source").append("<b>YES</b>");
+							$('#drinking_water_source_yes_div').show();
+							$('#drinking_water_source_no_div').hide();
+						}
+						else{
+							$("#other_drinking_water_source").append("<b>NO</b>");
+							$('#drinking_water_source_yes_div').hide();
+							$('#drinking_water_source_no_div').show();
+						}
+						if(result.data[0].own_drinking_water_source_type=="1"){
+							$("#drinking_water_source_yes").append("<b>Tube Well</b>");
+						}
+						else if(result.data[0].own_drinking_water_source_type=="2"){
+							$("#drinking_water_source_yes").append("<b>Supply Tap Water</b>");
+						}
+						else if(result.data[0].own_drinking_water_source_type=="3"){
+							$("#drinking_water_source_yes").append("<b>Own Tap Water</b>");
+						}
+						else if(result.data[0].own_drinking_water_source_type=="4"){
+							$("#drinking_water_source_yes").append("<b>Other</b>");
+						}
+						if(result.data[0].drinking_water_source_type=="1"){
+							$("#drinking_water_source_no").append("<b>Community Sources</b>");
+						}
+						else if(result.data[0].drinking_water_source_type=="2"){
+							$("#drinking_water_source_no").append("<b>Private Sources</b>");
+						}
+						else if(result.data[0].drinking_water_source_type=="3"){
+							$("#drinking_water_source_no").append("<b>Other</b>");
+						}
+						if(result.data[0].drinking_water_functional=="1"){
+							$("#drinking_water_functional").append("<b>YES</b>");
+						}
+						else{
+							$("#drinking_water_functional").append("<b>NO</b>");
+						}
+						if(result.data[0].drinking_water_tested_in_lab=="1"){
+							$("#drinking_water_tasted_lab").append("<b>YES</b>");
+						}
+						else{
+							$("#drinking_water_tasted_lab").append("<b>NO</b>");
+						}
+						if(result.data[0].water_arsenic_contaminated=="1"){
+							$("#arsenic_water").append("<b>YES</b>");
+							$("#water_arsenic_contaminated_div").show();
+						}
+						else{
+							$("#arsenic_water").append("<b>NO</b>");
+							$("#water_arsenic_contaminated_div").hide();
+						}
+						if(result.data[0].water_treated_arsenic_free=="1"){
+							$("#water_treated_arsenic_free").append("<b>YES</b>");
+						}
+						else{
+							$("#water_treated_arsenic_free").append("<b>NO</b>");
+						}
+						if(result.data[0].water_unusable_salinity=="1"){
+							$("#water_unusable_salinity").append("<b>YES</b>");
+						}
+						else{
+							$("#water_unusable_salinity").append("<b>NO</b>");
+						}
+						if(result.data[0].functional_water_purifier_available=="1"){
+							$("#water_purifier_available").append("<b>YES</b>");
+						}
+						else{
+							$("#water_purifier_available").append("<b>NO</b>");
+						}
+						if(result.data[0].toilets_urinals_available=="1"){
+							$("#toilet_urinals").append("<b>YES</b>");
+						}
+						else{
+							$("#toilet_urinals").append("<b>NO</b>");
+						}
+						if(result.data[0].toilets_regularly_cleaned=="1"){
+							$("#toilet_clean_regularly").append("<b>YES</b>");
+						}
+						else{
+							$("#toilet_clean_regularly").append("<b>NO</b>");
+						}
+						if(result.data[0].toilets_separated_boys_girls=="1"){
+							$("#separated_boys_girls").append("<b>YES</b>");
+						}
+						else{
+							$("#separated_boys_girls").append("<b>NO</b>");
+						}
+
+						$(".label_data #boys_toilet").val(result.data[0].boys_toilet);
+						
+						$(".label_data #girls_toilet").val(result.data[0].girls_toilet);
+						if(result.data[0].toilets_hygienic_usable=="1"){
+							$("#toilets_usable").append("<b>YES</b>");
+							$("#one_gender_specific_toilet_div").hide();
+							$("#dysfunctional_toilets_div").hide();
+						}
+						else{
+							$("#toilets_usable").append("<b>NO</b>");
+							$("#one_gender_specific_toilet_div").show();
+							$("#dysfunctional_toilets_div").show();
+						}
+						$(".label_data #dysfunctional_toilets").val(result.data[0].dysfunctional_toilets);
+						if(result.data[0].one_gender_specific_toilet_functional=="1"){
+							$("#one_gender_specific_toilet").append("<b>YES</b>");
+						}
+						else{
+							$("#one_gender_specific_toilet").append("<b>NO</b>");
+						}
+						
+						if(result.data[0].pucca_kitchen=="1"){
+							$("#pakka_kitchen").append("<b>YES</b>");
+						}
+						else{
+							$("#pakka_kitchen").append("<b>NO</b>");
+						}
+						if(result.data[0].kitchen_condition=="1"){
+							$("#kitchen_condition").append("<b>Very Good</b>");
+						}
+						else if(result.data[0].kitchen_condition=="2"){
+							$("#kitchen_condition").append("<b>Usable</b>");
+						}
+						else if(result.data[0].kitchen_condition=="3"){
+							$("#kitchen_condition").append("<b>Need Repair</b>");
+						}
+						$(".label_data #construction_year").val(result.data[0].kitchen_construction_year);
+						$(".label_data #last_repair_year").val(result.data[0].kitchen_last_repair_year);
+						if(result.data[0].kitchen_regularly_cleaned=="1"){
+							$("#kitchen_regularly_cleaned").append("<b>YES</b>");
+						}
+						else{
+							$("#kitchen_regularly_cleaned").append("<b>NO</b>");
+						}
+						if(result.data[0].cooking_utensils_usable=="1"){
+							$("#cooking_utensils_usable").append("<b>YES</b>");
+						}
+						else{
+							$("#cooking_utensils_usable").append("<b>NO</b>");
+						}
+						$(".label_data #cooking_utensils_last_repair_year").val(result.data[0].cooking_utensils_last_replace_year);
+						
+						if(result.data[0].separate_pucca_dining_hall=="1"){
+							$("#separate_dining_hall").append("<b>YES</b>");
+							$("#sufficient_free_space_available_div").hide();
+						}
+						else{
+							$("#separate_dining_hall").append("<b>NO</b>");
+							$("#sufficient_free_space_available_div").show();
+						}
+						if(result.data[0].free_space_available_for_dining_hall=="1"){
+							$("#sufficient_free_space_available").append("<b>YES</b>");
+						}
+						else{
+							$("#sufficient_free_space_available").append("<b>NO</b>");
+						}
+						if(result.data[0].mdm_seating_arrangement=="1"){
+							$("#seating_arrangement_mdm").append("<b>Floor</b>");
+						}
+						else{
+							$("#seating_arrangement_mdm").append("<b>Bench</b>");
+						}
+						if(result.data[0].school_building_status=="1"){
+							$("#school_building_status").append("<b>Good</b>");
+						}
+						else if(result.data[0].school_building_status=="2"){
+							$("#school_building_status").append("<b>Average</b>");
+						}
+						else{
+							$("#school_building_status").append("<b>Poor</b>");
+						}
+						if(result.data[0].class_room_furniture_available=="1"){
+							$("#classroom_furniture").append("<b>YES</b>");
+						}
+						else{
+							$("#classroom_furniture").append("<b>NO</b>");
+						}
+						$(".label_data #functional_classrooms").val(result.data[0].functional_class_room_number);
+						if(result.data[0].unusable_room_available=="1"){
+							$("#unusable_room").append("<b>YES</b>");
+						}
+						else{
+							$("#unusable_room").append("<b>NO</b>");
+						}
+						if(result.data[0].ramp_available=="1"){
+							$("#ramp_available").append("<b>YES</b>");
+						}
+						else{
+							$("#ramp_available").append("<b>NO</b>");
+						}
+						if(result.data[0].school_electricity_available=="1"){
+							$("#electricity_school").append("<b>YES</b>");
+						}
+						else{
+							$("#electricity_school").append("<b>NO</b>");
+						}
+						if(result.data[0].school_boundary_wall_fencing_available=="1"){
+							$("#boundary_wall_fencing").append("<b>YES</b>");
+						}
+						else{
+							$("#boundary_wall_fencing").append("<b>NO</b>");
+						}
+						if(result.data[0].weekly_menu_board=="1"){
+							$("#weekly_menu_board").append("<b>YES</b>");
+						}
+						else{
+							$("#weekly_menu_board").append("<b>NO</b>");
+						}
+						if(result.data[0].displaying_mdm_logo=="1"){
+							$("#displaying_mdm_logo").append("<b>YES</b>");
+						}
+						else{
+							$("#displaying_mdm_logo").append("<b>NO</b>");
+						}
+						if(result.data[0].fire_extinguisher=="1"){
+							$("#fire_extinguisher").append("<b>YES</b>");
+						}
+						else{
+							$("#fire_extinguisher").append("<b>NO</b>");
+							//$("#fire_extinguisher_working_div").hide();
+						}
+						/* if(result.data[0].fire_extinguisher_working=="1"){
+							$("#fire_extinguisher_working").append("<b>YES</b>");
+							$("#fire_extinguisher_valid_yes").show();
+							var fe_valid_date = (result.data[0].fire_extinguisher_valid_upto == null||"")?"NA":result.data[0].fire_extinguisher_valid_upto;
+							var dd1 = fe_valid_date.substr(8,2);
+							var mm1 = fe_valid_date.substr(5,2);
+							var yy1 = fe_valid_date.substr(0,4);
+							var fire_extinguisher_valid_date = dd1+'-'+mm1+'-'+yy1;
+							$("#fire_extinguisher_valid_upto").val(fire_extinguisher_valid_date);
+						}
+						else{
+							$("#fire_extinguisher_working").append("<b>NO</b>");
+							$("#fire_extinguisher_valid_yes").hide();
+							if(result.data[0].fire_extinguisher_required_refilling_replace=="1"){
+								$("#fire_extinguisher_required_refilling_replace").append("<b>Required Refilling</b>")
+							}
+							else if(result.data[0].fire_extinguisher_required_refilling_replace=="0"){
+								$("#fire_extinguisher_required_refilling_replace").append("<b>Required Replace</b>")
+							}
+						} */
+						if(result.data[0].register_food_grain=="1"){
+							$("#register_food_grain").append("<b>YES</b>");
+						}
+						else{
+							$("#register_food_grain").append("<b>NO</b>");
+						}
+						if(result.data[0].one_month_buffer_stock_rice=="1"){
+							$("#one_month_buffer_stock").append("<b>YES</b>");
+						}
+						else{
+							$("#one_month_buffer_stock").append("<b>NO</b>");
+						}
+						if(result.data[0].supplied_rice_quality=="1"){
+							$("#supplier_rice_quality").append("<b>Good</b>");
+						}
+						else if(result.data[0].supplied_rice_quality=="2"){
+							$("#supplier_rice_quality").append("<b>Average</b>");
+						}
+						else{
+							$("#supplier_rice_quality").append("<b>Poor</b>");
+						}
+						if(result.data[0].rice_stored_school_properly=="1"){
+							$("#rice_stored_school_properly").append("<b>YES</b>");
+						}
+						else{
+							$("#rice_stored_school_properly").append("<b>NO</b>");
+						}
+						if(result.data[0].receives_cooking_cost_regularly=="1"){
+							$("#receives_cooking_conversion_cost").append("<b>YES</b>");
+						}
+						else{
+							$("#receives_cooking_conversion_cost").append("<b>NO</b>");
+						}
+						if(result.data[0].mdm_cash_book_maintain=="1"){
+							$("#mdm_cash_book").append("<b>YES</b>");
+						}
+						else{
+							$("#mdm_cash_book").append("<b>NO</b>");
+						}
+
+						$(".label_data #cashbook_updated_date").val(cashbook_updated_date);
+						
+						if(result.data[0].meal_tested_before_served=="1"){
+							$("#meal_tested_half_hour").append("<b>YES</b>");
+							$("#meal_tasted_div").show();
+						}
+						else{
+							$("#meal_tested_half_hour").append("<b>NO</b>");
+							$("#meal_tasted_div").hide();
+						}
+						if(result.data[0].meal_tasted_teacher=="1"){
+							$("#teacher_tasted").append("<b>YES</b>");
+						}
+						else{
+							$("#teacher_tasted").append("<b>NO</b>");
+						}
+						if(result.data[0].meal_tasted_cch=="1"){
+							$("#cch_tasted").append("<b>YES</b>");
+						}
+						else{
+							$("#cch_tasted").append("<b>NO</b>");
+						}
+						if(result.data[0].meal_tasted_parents=="1"){
+							$("#parents_tasted").append("<b>YES</b>");
+						}
+						else{
+							$("#parents_tasted").append("<b>NO</b>");
+						}
+						if(result.data[0].meal_tasted_other=="1"){
+							$("#other_tasted").append("<b>YES</b>");
+						}
+						else{
+							$("#other_tasted").append("<b>NO</b>");
+						}
+						if(result.data[0].daily_meal_tasting_register_maintaineddaily_meal_tasting_register_maintained=="1"){
+							$("#meal_tasting_register_maintained").append("<b>YES</b>");
+						}
+						else{
+							$("#meal_tasting_register_maintained").append("<b>NO</b>");
+						}
+						if(result.data[0].separate_bank_ac_mdm=="1"){
+							$("#separate_bank_ac").append("<b>YES</b>");
+						}
+						else{
+							$("#separate_bank_ac").append("<b>NO</b>");
+						}
+						if(result.data[0].cch_honorarium_regular=="1"){
+							$("#regularly_cch_honorarium").append("<b>YES</b>");
+						}
+						else{
+							$("#regularly_cch_honorarium").append("<b>NO</b>");
+						}
+						if(result.data[0].all_cooks_have_bank_ac=="1"){
+							$("#cooks_bank_account").append("<b>YES</b>");
+						}
+						else{
+							$("#cooks_bank_account").append("<b>NO</b>");
+						}
+						if(result.data[0].cooks_receive_honorarium_through=="1"){
+							$("#cooks_receive_honorarium_through").append("<b>Bank Accounts</b>");
+						}
+						else if(result.data[0].cooks_receive_honorarium_through=="2"){
+							$("#cooks_receive_honorarium_through").append("<b>Cash</b>");
+						}
+						else{
+							$("#cooks_receive_honorarium_through").append("<b>Cheque</b>");
+						}
+						if(result.data[0].school_daily_report_sms=="1"){
+							$("#school_daily_report_sms").append("<b>YES</b>");
+						}
+						else{
+							$("#school_daily_report_sms").append("<b>NO</b>");
+						}
+						if(result.data[0].cooking_mode=="1"){
+							$("#cooking_mode").append("<b>LPG</b>");
+						}
+						else if(result.data[0].cooking_mode=="2"){
+							$("#cooking_mode").append("<b>Coal</b>");
+						}
+						else if(result.data[0].cooking_mode=="3"){
+							$("#cooking_mode").append("<b>Fire Wood</b>");
+						}
+						else if(result.data[0].cooking_mode=="4"){
+							$("#cooking_mode").append("<b>Other</b>");
+						}
+						if(result.data[0].cooks_change_dress=="1"){
+							$("#cooks_change_dress").append("<b>YES</b>");
+						}
+						else{
+							$("#cooks_change_dress").append("<b>NO</b>");
+						}
+						if(result.data[0].cooks_use_apron_gloves=="1"){
+							$("#cooks_use_apron_gloves").append("<b>YES</b>");
+						}
+						else{
+							$("#cooks_use_apron_gloves").append("<b>NO</b>");
+						}
+						if(result.data[0].food_grains_washed=="1"){
+							$("#food_grains_washed").append("<b>YES</b>");
+						}
+						else{
+							$("#food_grains_washed").append("<b>NO</b>");
+						}
+						if(result.data[0].kitchen_garden_avalable=="1"){
+							$("#kitchen_garden_available").append("<b>YES</b>");
+						}
+						else{
+							$("#kitchen_garden_available").append("<b>NO</b>");
+						}
+						if(result.data[0].school_received_plate_glasses=="1"){
+							$("#school_received_plate_glasses").append("<b>YES</b>");
+						}
+						else{
+							$("#school_received_plate_glasses").append("<b>NO</b>");
+						}
+						if(result.data[0].hand_wash_practiced=="1"){
+							$("#hand_wash_practiced").append("<b>YES</b>");
+						}
+						else{
+							$("#hand_wash_practiced").append("<b>NO</b>");
+						}
+						if(result.data[0].mdm_served_through_central_kitchen=="1"){
+							$("#served_through_central_kitchen").append("<b>YES</b>");
+						}
+						else{
+							$("#served_through_central_kitchen").append("<b>NO</b>");
+						}
+						if(result.data[0].govt_pr_visited_previous_one_month=="1"){
+							$("#govt_pr_visited_previous_one_month").append("<b>YES</b>");
+						}
+						else{
+							$("#govt_pr_visited_previous_one_month").append("<b>NO</b>");
+						}
+						if(result.data[0].agmark_sealed_oil_used=="1"){
+							$("#agmark_sealed_oil_used").append("<b>YES</b>");
+						}
+						else{
+							$("#agmark_sealed_oil_used").append("<b>NO</b>");
+						}
+						if(result.data[0].branded_packaged_condiments_used=="1"){
+							$("#branded_packaged_condiments_used").append("<b>YES</b>");
+						}
+						else{
+							$("#branded_packaged_condiments_used").append("<b>NO</b>");
+						}
+						if(result.data[0].double_fortified_salt=="1"){
+							$("#double_fortified_salt").append("<b>YES</b>");
+						}
+						else{
+							$("#double_fortified_salt").append("<b>NO</b>");
+						}
+						if(result.data[0].health_checkup_card_maintained_regular=="1"){
+							$("#health_checkup_card_maintained").append("<b>YES</b>");
+						}
+						else{
+							$("#health_checkup_card_maintained").append("<b>NO</b>");
+						}
+						if(result.data[0].bdo_name_phno_display=="1"){
+							$("#bdo_name_phno_display").append("<b>YES</b>");
+						}
+						else{
+							$("#bdo_name_phno_display").append("<b>NO</b>");
+						}
+						if(result.data[0].concerned_si_name_phno_display=="1"){
+							$("#concerned_si_name_phno_display").append("<b>YES</b>");
+						}
+						else{
+							$("#concerned_si_name_phno_display").append("<b>NO</b>");
+						}
+						if(result.data[0].irregularity_found=="1"){
+							$("#irregularity_found").append("<b>YES</b>");
+							$("#checkbox_display_level").show();
+							$("#irregularity_details").show();
+							if(result.data[0].rice_irregularity=="1"){
+								$("#rice_irregularity").show();
+							}
+							if(result.data[0].fund_irregularity=="1"){
+								$("#fund_irregularity").show();
+							}
+							if(result.data[0].mdm_takers_number_irregularity=="1"){
+								$("#wrong_inflated_report_irregularity").show();
+							}
+							if(result.data[0].cch_irregularity=="1"){
+								$("#cch_irregularity").show();
+							}
+							if(result.data[0].ssm_fund_related_irregularity=="1"){
+								$("#ssm_fund_related_irregularity").show();
+							}
+							if(result.data[0].other_irregularity=="1"){
+								$("#other_irregularity").show();
+							}
+							//$("#input_irregular_data").show();
+							$("#detail_irregularity").val(result.data[0].detail_irregularity);
+						}
+						else{
+							$("#irregularity_found").append("<b>NO</b>");
+						}
+
+						$("#improvement_suggestion").val(result.data[0].improvement_suggestion);
+						if(result.data[0].improvement_required_smooth_functioning=="1"){
+							$("#improvement_required_smooth_functioning").append("<b>YES</b>");
+							$("#details_improvement_required").show();
+							$("#detail_improvement_suggestion").val(result.data[0].suggestion_smooth_functioning_mdm);
+						}
+						else{
+							$("#improvement_required_smooth_functioning").append("<b>NO</b>");
+							$("#details_improvement_required").hide();
+						}
+						
+						$('#smallImage1').attr('src', result.data[0].serving_eating_picture);
+						$('#smallImage2').attr('src', result.data[0].school_premises_picture);
+						$('#smallImage3').attr('src', result.data[0].toilets_picture);
+						$('#smallImage4').attr('src', result.data[0].drinking_water_source_picture);
+						$('#smallImage5').attr('src', result.data[0].kitchen_picture);
+						$('#smallImage6').attr('src', result.data[0].other_picture);
+
+					}
+					
+				}
+				
+		});
+		$("#preloader").fadeOut();
+
+	}
+
+	function imageerror(id){
+		//alert("Not Found");
+		//alert($(id).attr("id"));
+		var x = ($(id).attr("id"));
+		document.getElementById(x).style.display="none";
+		if(x = "smallImage1"){
+			$(".imageerrormsg0").show();
+		}
+		if(x = "smallImag2"){
+			$(".imageerrormsg").show();
+		}
+		if(x = "smallImage3"){
+			$(".imageerrormsg1").show();
+		}
+		if(x = "smallImage4"){
+			$(".imageerrormsg2").show();
+		}
+		if(x = "smallImage5"){
+			$(".imageerrormsg3").show();
+		}
+		if(x = "smallImage6"){
+			$(".imageerrormsg4").show();
+		}
+
+
+	}
+ 
+</script> 
+	</head>
+<body class="bg">
+<div id="preloader" style="display:none;">
+<div class="cssload-container">
+<div class="cssload-speeding-wheel"></div>
+</div>
+</div>
+<div class="state_project">
+	<div class="inner_header">
+    	<div class="container-fluid">
+        	<div class="row">
+            
+            	<div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_back_btn">
+                	<a href="officer_history.html"><img src="images/back.svg" class="img-responsive"></a>
+                </div>
+                </div>
+               
+				 <div class="col-md-6 col-sm-6 col-xs-6">
+                <div class="header_inner_logo_form">
+                    <img src="images/inner_logo.png" class="img-responsive">
+                </div>
+                </div>
+                <div class="col-md-3 col-sm-3 col-xs-3">
+                <div class="header_home_btn">
+                	<a href="officer_Dashboard.html"><img src="images/house.svg" class="img-responsive"></a>
+                </div>
+                </div>
+                
+            </div>
+            <div class="inner_header_bottom">
+                <h2>Inspected Form</h2>  				
+            </div>
+        </div>
+    </div>
+     
+    <div class="inner_content student_content">
+    	<div class="panel-group" >
+    <div class="panel panel-default">
+      <div class="panel-heading"  style="background-color:#ff980085;">
+        <h4 class="panel-title heading_color">
+          <a class="picture_width">School & Enrolment Information
+						<!-- <span class="glyphicon glyphicon-collapse-down move_right"> -->			
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse1" class="panel-collapse">
+        <!--<div class="panel-body">Panel Body</div>-->
+<div class="panel-body">
+
+<!------------------------------>
+
+<div class="row">
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display"> 
+<label class="head">School Name:</label>
+ </div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+ <label class="head" name="sname" id="sname"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!---------222---------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">DISE Code:</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="school_code_fk" id="schcd"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!---------------------->
+<!---------333---------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Category:</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="category_code_fk" id="category_name"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!---------------------->
+<!---------444---------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">School Type:</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="type_code_fk" id="type_name"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!-------------------->
+<!---------555---------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Management:</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="management_code_fk" id="management_name"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!-------------------->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Name of MDM Incharge:</label>
+</div>
+</div>
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="mdm_in_charge_name1" id="mdm_in_charge_name1"></label>
+</div>
+</div>
+<!-------------------->
+<div class="clearfix"></div>
+<!------------ wtf-------------->
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Contact No:</label>
+</div>
+</div>
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="contact_no1" id="contact_no1"></label>
+</div>
+</div>
+
+<!-------- wtf --------> 
+<!-------------------->
+<div class="col-md-12 col-sm-12 col-xs-12">
+<div class ="label_display">
+<label class="head">Enrolment:</label>
+</div>
+
+</div>
+<!-------------------->	
+<div id="pre_primary_div" style="display:none" >
+
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Pre Primary</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="pre_primary_enroll" id="pre_primary"></label>
+</div>
+</div>
+
+</div>
+<!-------------------->
+<div id="Class_i_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class I</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_i_enroll" id="class_i"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_ii_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class II</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_ii_enroll" id="class_ii"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_iii_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class III</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_iii_enroll" id="class_iii"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_iv_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class IV</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_iv_enroll" id="class_iv"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_v_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class V</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_v_enroll" id="class_v"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_vi_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class VI</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_vi_enroll" id="class_vi"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_vii_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class VII</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_vii_enroll" id="class_vii"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+<div id="Class_viii_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class VIII</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_viii_enroll" id="class_viii"></label>
+</div>
+</div>
+</div>
+<!-------------------->
+
+<!------------------------------>
+<!-- <div class="form-group">   class="form-control" -->
+<div id="Class_ix_x_Class_xi_xii" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+      <label class="head">Class IX & X</label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+      <input type="number" class="form-control" name="class_ix_x_enroll" id="class_ix_x_enroll" readonly/>
+</div>
+</div>
+
+    <!--</div>-->
+<!------------------------------->
+<!-- class="form-control"
+<div class="form-group">-->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+      <label class="head">Class XI & XII</label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+      <input type="number" class="form-control" name="class_xi_xii_enroll" id="class_xi_xii_enroll" readonly/>
+</div>
+</div>
+
+</div>
+<!-------------------last 1------------>
+<div class="col-md-12 col-sm-12 col-xs-12">
+<div class ="label_display">
+      <label class="head">MDM Availed:</label>
+</div>
+</div>
+<!----->
+<div id="MDM_Availed_Pre_Primary_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Pre-Primary</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="pre_primary_coverage" id="mdm_Pre_Primary"></label>
+</div>
+</div>
+</div>
+
+
+
+<!----->
+<div id="MDM_Availed_mdm_Class_i_iv_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class I To IV</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_i_iv_coverage" id="mdm_Class_i_iv"></label>
+</div>
+</div>
+</div>
+
+
+<!----->
+<div id="MDM_Availed_mdm_Class_v_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class V</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_v_coverage" id="mdm_Class_v"></label>
+</div>
+</div>
+</div>
+
+
+<!----->
+<!----->
+<div id="MDM_Availed_mdm_Class_vi_viii_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Class VI To VIII</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="class_vi_viii_coverage" id="mdm_Class_vi_viii"></label>
+</div>
+</div>
+</div>
+
+<!----->
+
+<div id="MDM_Availed_mdm_cause_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Cause</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="mdm_cause" id="mdm_cause"></label>
+</div>
+</div>
+</div>
+
+<!----->
+
+<div id="MDM_Availed_not_reported_div" style="display:none" >
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+<label class="head">Reported</label>
+</div>
+
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+<label class="head" name="not_reported" id="not_reported"></label>
+</div>
+</div>
+</div>
+<!----->
+
+<!------------------------------------->
+
+<!---------------------last 2---------->
+<div class="col-md-12 col-sm-12 col-xs-12">
+<div class ="label_display">
+      <label class="head">Total Number Of Teachers:</label>
+</div>
+</div>
+<!---->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+      <label class="head">Regular Teachers</label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+      <input type="number" class="form-control" name="regular_teacher" id="regular_teacher" readonly>
+</div>
+</div>
+<!---->
+<!---->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+      <label class="head">Para Teachers</label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+      <input type="number" class="form-control" name="para_teacher" id="para_teacher" readonly/>
+</div>
+</div>
+<!---->
+<!---->
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class ="label_display">
+      <label class="head">Contractual Teachers</label>
+</div>
+</div>
+<div class="col-md-6 col-sm-6 col-xs-6">
+<div class="label_data">
+      <input type="number" class="form-control" name="contractual_teacher" id="contractual_teacher" readonly/>
+</div>
+</div>
+<!---->
+
+<!---->
+</div>
+</div>        
+      </div>
+    </div>
+  </div>
+  <!----------panel end-->
+
+  <div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+	  
+        <h4 class="panel-title heading_color">
+          <a class="picture_width">Infrastructural facilities
+					  <!-- <span class="glyphicon glyphicon-collapse-down move_right" -->
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse2" class="panel-collapse">
+        <div class="panel-body">
+		<!--<div class="w3l-mail">-->
+		  <!------ Facilites 1----->
+		   
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having own Drinking Water source</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="other_drinking_water_source"></div>
+			
+            <div id="drinking_water_source_yes_div">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Mention type of sources</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="drinking_water_source_yes"></div>
+            </div>
+
+            <div id="drinking_water_source_no_div">
+             <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Mention type of sources</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="drinking_water_source_no"></div>
+			</div>
+			
+		  <!-----------Facilites-------->
+		  <!------ Facilites 2----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Drinking Water source is functional</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="drinking_water_functional"></div>
+
+		  <!-----------Facilites-------->
+           <!------ Drinking Water tested----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Drinking Water tested in lab or not</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="drinking_water_tasted_lab"></div>
+
+		  <!-----------Drinking Water tested-------->
+		  <!------ Facilites 3----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether water source identified as arsenic contaminated</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="arsenic_water"></div>
+
+		  <!-----------Facilites-------->
+		  <div id="water_arsenic_contaminated_div">
+          <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether the water treated to make it arsenic free</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="water_treated_arsenic_free"></div>
+			</div>
+		  <!------ Facilites 4----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether water unusable due to salinity</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="water_unusable_salinity"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites 5----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Water Purifier is available</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="water_purifier_available"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites 6----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Toilet & Urinals available</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="toilet_urinals"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether toilets are regularly cleaned</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="toilet_clean_regularly"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites 7----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Separated for Boys & Girls</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="separated_boys_girls"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites 8----->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+			<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class ="label_display">
+				      <label class="head">No. of Boys’ toilets</label>
+				</div>
+			</div>
+			<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class="label_data">
+				      <input type="number" class="form-control" name="boys_toilet" id="boys_toilet" readonly/>
+				</div>
+			</div>
+		</div>		
+		  <!-----------Facilites-------->
+		  <!------ Facilites 9----->
+		<div class="col-md-12 col-sm-12 col-xs-12">	
+			<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class ="label_display">
+				      <label class="head">No. of Girls’ toilets</label>
+				</div>
+			</div>
+			<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class="label_data">
+				      <input type="number" class="form-control" name="girls_toilet" id="girls_toilet" readonly/>
+				</div>
+			</div>		
+		</div>		
+		  <!-----------Facilites-------->
+		  <!------ Facilites 10----->
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Toilets are hygienic & usable</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="toilets_usable"></div>
+
+		  <!-----------Facilites-------->
+		  <!------ Facilites 11----->
+			
+		
+			<div class="col-md-12 col-sm-12 col-xs-12" id="dysfunctional_toilets_div">	
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">No. of dysfunctional toilets</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="number" class="form-control" name="dysfunctional_toilets" id="dysfunctional_toilets" readonly/>
+					</div>
+				</div>		
+			</div>		
+			
+			
+			
+		  <!-----------Facilites-------->
+		  <!------ Facilites 12----->
+		  <div id="one_gender_specific_toilet_div">
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether at least one gender specific toilet is functional</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="one_gender_specific_toilet"></div>
+			</div>
+
+		  <!-----------Facilites-------->
+		  
+
+		  <!-----------Facilites 15-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having Pucca Kitchen</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="pakka_kitchen"></div>
+
+		  <!-----------Facilites 16-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Condition of kitchen</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="kitchen_condition"></div>
+
+			<!-----------Facilites 17-------->
+		  
+			
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">Year of construction</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="number" class="form-control" name="construction_year" id="construction_year" readonly/>
+					</div>
+				</div>		
+			</div>		
+			
+			
+			
+			
+			<!-----------Facilites 18-------->
+			<div class="col-md-12 col-sm-12 col-xs-12">	  
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">Year of last repair</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="number" class="form-control" name="last_repair_year" id="last_repair_year" readonly/>
+					</div>
+				</div>		
+			</div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+					<label class="head">Whether the kitchen is regularly cleaned</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="kitchen_regularly_cleaned"></div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+					<label class="head">Cooking Utensils Usable</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooking_utensils_usable"></div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12">	  
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">Cooking Utensils Last Repair Year</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="number" class="form-control" name="cooking_utensils_last_repair_year" id="cooking_utensils_last_repair_year" readonly/>
+					</div>
+				</div>		
+			</div>
+			
+			
+
+			<!-----------Facilites 20-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having of separate pucca Dining Hall</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="separate_dining_hall"></div>
+
+			<!-----------Facilites 21-------->
+			<div id="sufficient_free_space_available_div">
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether sufficient Free Space is available within premises for construction of Dining Hall or scope for vertical extension</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="sufficient_free_space_available"></div>
+			</div>
+			<!-----------Facilites-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Seating arrangement for MDM</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="seating_arrangement_mdm"></div>
+			<!-----------Facilites-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">School Building status</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="school_building_status"></div>
+			<!-----------Facilites-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Furniture in classroom available</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="classroom_furniture"></div>
+			<!------ Facilites 13----->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">No. of functional classrooms</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="number" class="form-control" name="functional_classrooms" id="functional_classrooms" readonly/>
+					</div>
+				</div>		
+			</div>		
+			
+			
+		  <!-----------Facilites 14-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Is there any unusable room</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="unusable_room"></div>
+
+			<!-----------Facilites 22-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Ramp is available</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="ramp_available"></div>
+
+			<!-----------Facilites 23-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having electricity in school</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="electricity_school"></div>
+
+			<!-----------Facilites 19-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having boundary wall or fencing</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="boundary_wall_fencing"></div>
+
+		
+			
+		</div>
+     
+      </div>
+    </div>
+  </div>
+  
+  
+  
+  
+  <!-----------panel end-->
+  
+  <div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+	  
+        <h4 class="panel-title heading_color">
+          <a class="picture_width">MDM Information
+					  <!-- <span class="glyphicon glyphicon-collapse-down move_right"> -->
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse4" class="panel-collapse">
+        <div class="panel-body">
+		<!--<div class="w3l-mail">-->
+		  <!------ Facilites 1----->
+		  
+			
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Weekly menu board</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="weekly_menu_board"></div>
+
+			<!-----------Facilites 27-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Displaying MDM logo</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="displaying_mdm_logo"></div>
+
+			<!-----------Facilites 28-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Fire Extinguisher</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="fire_extinguisher"></div>
+
+            <div id="fire_extinguisher_working_div">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Fire Extinguisher is in working condition</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="fire_extinguisher_working"></div>
+			</div>
+
+			<!-- <div class="col-md-12 col-sm-12 col-xs-12" id="fire_extinguisher_valid_yes" style="display: none;">
+			<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class ="label_display">
+				      <label class="head">Valid up to (DD/MM/YYYY)</label>
+				</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+				<div class="label_data">
+				      <input type="text" class="form-control" name="fire_extinguisher_valid_upto" id="fire_extinguisher_valid_upto" readonly/>
+				</div>
+				</div>
+			</div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12" id="fire_extinguisher_required_refilling_replace"></div> -->
+
+			
+
+			<!-----------Facilites 29-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Maintaining proper register for food grain</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="register_food_grain"></div>
+
+			<!-----------Facilites 30-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Maintenance of one month’s buffer stock (Rice)</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="one_month_buffer_stock"></div>
+
+			<!-----------Facilites 31-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Quality of supplier rice</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="supplier_rice_quality"></div>
+
+			<!-----------Facilites 32-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Rice is stored at school properly(in bin / raised platform)</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="rice_stored_school_properly"></div>
+
+			<!-----------Facilites 33-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether school receives Cooking Conversion Cost regularly</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="receives_cooking_conversion_cost"></div>
+
+			<!-----------Facilites 34-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Maintaining MDM cash book</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="mdm_cash_book"></div>
+
+          
+			
+			 <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class ="label_display">
+					      <label class="head">Cash book updated up to (DD/MM/YYYY)</label>
+					</div>
+				</div>
+				<div class="col-md-6 col-sm-6 col-xs-6">
+					<div class="label_data">
+					      <input type="text" class="form-control" name="cashbook_updated_date" id="cashbook_updated_date" readonly/>
+					</div>
+				</div>
+			</div>		
+			
+			
+			
+			
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether the cooked meal was tasted at least half an hour before serving</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="meal_tested_half_hour"></div>
+			
+            <div id="meal_tasted_div">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Teacher</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="teacher_tasted"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">CCH</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cch_tasted"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Parents</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="parents_tasted"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Others</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="other_tasted"></div>
+			</div>
+			
+			<!-----------Facilites 36-------->
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether daily meal tasting register is maintained</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="meal_tasting_register_maintained"></div>
+			
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Having separate bank A/C for MDM</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="separate_bank_ac"></div>
+			
+			<!-----------Facilites 37-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Cook cum Helpers get honorarium regularly</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="regularly_cch_honorarium"></div>
+
+			<!-----------Facilites-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether all Cooks have Bank Account</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooks_have_bank_account"></div>
+
+			<!-----------Facilites-------->
+		  	<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Does the Cooks receive honorarium through</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooks_receive_honorarium_through"></div>
+			
+			<!-----------Facilites 38-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether the school sends daily report by SMS</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="school_daily_report_sms"></div>
+			
+			<!-----------Facilites 39-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Mode of cooking</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooking_mode"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Cooks change their dress before stating work</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooks_change_dress"></div>
+			
+			<!-----------Facilites 42-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Cooks use Apron / Gloves during cooking</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cooks_use_apron_gloves"></div>
+			
+            <!-----------Facilites -------->
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether food grains is washed properly raw vegetables are washed before & after chopping / Cutting</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="food_grains_washed"></div>
+			
+			<!-----------Facilites 43-------->
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Kitchen Garden is available</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="kitchen_garden_avalable"></div>
+            
+			
+			
+			<!-----------Facilites 44-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether school received Plate and Glasses</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="school_received_plate_glasses"></div>
+			
+			<!-----------Facilites 45-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Hand wash is practiced before and after MDM</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="hand_wash_practiced"></div>
+			
+			<!-----------Facilites 46-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether Mid-Day Meal is served through Central Kitchen</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="served_through_central_kitchen"></div>
+			
+			<!-----------Facilites 47-------->
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether any Govt. / PR body officials visited the school during the previous one month</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="govt_pr_visited_previous_one_month"></div>
+			
+            
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether AGMARK sealed oil is used in MDM cooking</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="agmark_sealed_oil_used"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether branded packaged condiments (Mashlapati) are used</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="branded_packaged_condiments_used"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether double fortified salt (enriched with iron & iodine)</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="double_fortified_salt"></div>
+			
+            
+            <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether regular health check up is done in the school with maintenance of health card</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="health_checkup_card_maintained"></div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Name of the BDO, with phone number display</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="bdo_name_phno_display"></div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Name of the concerned SI of schools with phone number display</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="concerned_si_name_phno_display"></div>
+			
+		</div>    
+      </div>
+    </div>
+  </div>
+  
+    <!----------panel end-->
+	
+	<div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+	  
+        <h4 class="panel-title heading_color">
+          <a class="picture_width">Irregularity Report
+					  <!-- <span class="glyphicon glyphicon-collapse-down move_right"> -->
+		  </a>
+        </h4>
+      </div>
+      <div id="collapse5" class="panel-collapse">
+        <div class="panel-body">
+		<!--<div class="w3l-mail">-->
+		  <!------ Facilites 1----->
+		   			
+			<!-----------Facilites 48-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Whether any Irregularity found during inspection</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="irregularity_found"></div>
+			          
+            <div class="col-md-12 col-sm-12 col-xs-12" id="checkbox_display_level" style="display:none">
+				<div class ="label_display">
+				<label class="head">Irregularity related to</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="rice_irregularity" style="display:none"><b>Rice of MDM</b></div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="fund_irregularity" style="display:none"><b>iFund of MDM</b></div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="wrong_inflated_report_irregularity" style="display:none"><b>No. of MDM takers</b></div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="cch_irregularity" style="display:none"><b>CCH</b></div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="ssm_fund_related_irregularity" style="display:none"><b>SSM fund</b></div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="other_irregularity" style="display:none"><b>Other</b></div>
+			
+			
+            <div class="col-md-12 col-sm-12 col-xs-12" id="irregularity_details" style="display: none;">
+            <div id="input_irregular_display">
+            <div class ="label_display">
+                  <label class="head">Irregularity in detail</label>
+            </div>
+            </div>
+			<div id="input_irregular_data">
+            <div class="label_data">
+                  <!-- <input type="text" class="form-control" name="detail_irregularity" id="detail_irregularity" readonly/> -->
+                  <textarea class="form-control" name="detail_irregularity" id="detail_irregularity" readonly></textarea>
+            </div>
+            </div> 
+			</div>
+			
+			<div class="col-md-12 col-sm-12 col-xs-12">			
+            <div class ="label_display">
+                  <label class="head">Suggestion for further improvement</label>
+            </div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12">
+            <div class="label_data">
+                  <!-- <input type="text" class="form-control" name="improvement_suggestion" id="improvement_suggestion" readonly/> -->
+                <textarea class="form-control" name="improvement_suggestion" id="improvement_suggestion" readonly></textarea>
+            </div>
+            </div>
+			<!-----------Facilites 49-------->
+		  <div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Is any improvement is required for smooth functioning of MDM</label>
+				</div>
+			</div>
+			<div class="col-md-12 col-sm-12 col-xs-12" id="improvement_required_smooth_functioning"></div>
+
+			<div class="col-md-12 col-sm-12 col-xs-12" id="details_improvement_required" style="display: none;">
+            <div id="improvement_display">
+            <div class ="label_display">
+                  <label class="head">Improvement Suggestion</label>
+            </div>
+            </div>
+			<div id="improvement_data">
+            <div class="label_data">
+                  <!-- <input type="text" class="form-control" name="detail_irregularity" id="detail_irregularity" readonly/> -->
+                  <textarea class="form-control" name="detail_improvement_suggestion" id="detail_improvement_suggestion" readonly></textarea>
+            </div>
+            </div> 
+			</div>
+						
+		</div>
+      
+      </div>
+    </div>
+  </div>
+    <!----------panel end-->
+  <div class="panel-group">
+    <div class="panel panel-default">
+      <div class="panel-heading" style="background-color:#ff980085;">
+        <h4 class="panel-title heading_color">
+          <a class="picture_width">Picture 
+						<!-- <span class="glyphicon glyphicon-collapse-down move_right"> -->
+		  </a> 
+        </h4>
+      </div>
+      <div id="collapse3" class="panel-collapse">
+        <div class="panel-body">
+		<!-----1----->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Taking / Serving of MDM</label>
+				</div>
+		</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;" id="smallImage1" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg0" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->
+		
+		<!-----1----->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">School Premises</label>
+				</div>
+		</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;"  id="smallImage2" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->
+		<!-----2---->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Toilets</label>
+				</div>
+			</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;" id="smallImage3" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg1" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->
+		<!-----3---->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Drinking water source</label>
+				</div>
+			</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;" id="smallImage4" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg2" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->
+		<!-----4---->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Kitchen</label>
+				</div>
+			</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;" id="smallImage5" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg3" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->
+		<!-----5---->
+		<div class="col-md-12 col-sm-12 col-xs-12">
+				<div class ="label_display">
+				<label class="head">Others</label>
+				</div>
+			</div>
+		<div class="col-md-12 col-sm-12 col-xs-12">
+                <div class="label_data">
+				  <div class="camera">
+						<div class="image text-center">						
+							<div class="cameraimg">
+                                <div class="cap_btn">
+									<img style="display:block;"  id="smallImage6" class="img-responsive" onError="imageerror(this);"/>
+									<div class="imageerrormsg4" style="display: none;"><b>Image Not Found</b></div>
+                                </div>
+							</div>
+						</div>
+					</div>
+                </div>
+        </div>
+		<!---------->		
+		<!--
+		-->
+		</div>      
+      </div>
+    </div>
+  </div>
+  	  
+    <!----------panel end-->		 
+    </div>    
+</div>
+
+</body>
+</html>
+
+
