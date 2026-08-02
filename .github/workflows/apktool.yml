@@ -11,81 +11,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      
-      - name: Install apktool
+      - name: Find and rename APK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
+          # Find any APK file in the repository
+          APK_FILE=$(find . -name "*.apk" -type f | head -1)
           
-          wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-          chmod +x apktool
-          sudo mv apktool /usr/local/bin/
-          
-          wget -q https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
-          sudo mv apktool_2.9.3.jar /usr/local/bin/apktool.jar
-      
-      - name: Move AndroidManifest and create apktool.yml
-        run: |
-          # Ensure AndroidManifest is in resources/
-          if [ -f "AndroidManifest.xml" ]; then
-            mv AndroidManifest.xml resources/
+          if [ -n "$APK_FILE" ]; then
+            echo "Found APK: $APK_FILE"
+            cp "$APK_FILE" app-unsigned.apk
+          else
+            echo "No APK found. Please upload the original APK."
+            exit 1
           fi
-          
-          # Go into resources directory
-          cd resources
-          
-          # Create apktool.yml inside resources/
-          cat > apktool.yml << 'EOF'
-          !brut.androlib.meta.MetaInfo
-          apkFileName: app.apk
-          compressionType: false
-          doNotCompress:
-          - resources.arsc
-          - png
-          - jpg
-          - gif
-          - wav
-          - mp4
-          - webp
-          - ogg
-          - md
-          - bin
-          - ttf
-          - json
-          - xml
-          - svg
-          - otf
-          isFrameworkApk: false
-          packageInfo:
-            forcedPackageId: '127'
-            renameManifestPackage: null
-          sdkInfo:
-            minSdkVersion: '24'
-            targetSdkVersion: '36'
-          sharedLibrary: false
-          unknownFiles: {}
-          usesFramework:
-            ids:
-            - 1
-            tag: null
-          version: 2.9.3
-          versionInfo:
-            versionCode: '10907'
-            versionName: 1.9.7
-          EOF
-          
-          cd ..
-      
-      - name: Build APK from resources
-        run: |
-          cd resources
-          apktool b . -o ../app-unsigned.apk
-          cd ..
       
       - name: Generate debug keystore
         run: |
@@ -95,20 +32,17 @@ jobs:
             -dname "CN=Android Debug, O=Android, C=US" \
             -validity 10000
       
-      - name: Sign APK
+      - name: Re-sign APK
         run: |
+          # First remove existing signature
+          zip -d app-unsigned.apk 'META-INF/*' 2>/dev/null || true
+          
+          # Sign with new keystore
           jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
             -keypass android app-unsigned.apk androiddebugkey
           
           mv app-unsigned.apk app-signed.apk
-      
-      - name: Verify and upload APK
-        run: |
-          echo "APK size:"
-          ls -lh app-signed.apk
-          echo "APK contents:"
-          unzip -l app-signed.apk | head -20
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
