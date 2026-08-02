@@ -1,4 +1,4 @@
-name: Extract APK ZIP
+name: Extract ZIP
 
 on:
   workflow_dispatch:
@@ -6,36 +6,16 @@ on:
 jobs:
   extract:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        
-      - name: Extract my.zip to root directory
+      - uses: actions/checkout@v3
+      
+      - name: Extract my.zip
+        run: unzip -o my.zip -d .
+      
+      - name: Push changes
         run: |
-          # Extract all files directly to repository root
-          unzip -o my.zip -d .
-          
-          # Remove the zip file after extraction
-          rm my.zip
-          
-      - name: List extracted files (for verification)
-        run: |
-          echo "=== Extracted files ==="
-          ls -la
-          echo "=== Directory structure ==="
-          find . -type f -not -path "./.git/*" -not -path "./.github/*" | head -20
-          
-      - name: Commit and push extracted files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Add all extracted files
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
           git add .
-          
-          # Commit changes
-          git commit -m "Extract my.zip to repository root [skip ci]" || echo "No changes to commit"
-          
-          # Push to main branch
+          git commit -m "Extract my.zip" || echo "No changes"
           git push
