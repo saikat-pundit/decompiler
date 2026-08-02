@@ -103,7 +103,7 @@ public class CameraLauncher extends CordovaPlugin implements MediaScannerConnect
         if (!str.equals(TAKE_PICTURE_ACTION)) {
             return false;
         }
-        this.srcType = 1;
+        this.srcType = 0;
         this.destType = 1;
         this.saveToPhotoAlbum = false;
         this.targetHeight = 0;
@@ -127,7 +127,7 @@ public class CameraLauncher extends CordovaPlugin implements MediaScannerConnect
         if (this.targetHeight < 1) {
             this.targetHeight = -1;
         }
-        if (this.targetHeight == -1 && this.targetWidth == -1 && this.mQuality == 100 && !this.correctOrientation && this.encodingType == 1 && this.srcType == 1) {
+        if (this.targetHeight == -1 && this.targetWidth == -1 && this.mQuality == 100 && !this.correctOrientation && this.encodingType == 1 && this.srcType == 0) {
             this.encodingType = 0;
         }
         try {
