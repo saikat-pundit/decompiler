@@ -2128,6 +2128,7 @@ function localdb(mobile_no,inspection_date,school_code_fk,totaldata,image0,image
 				targetWidth: 1024,
 				targetHeight: 1024,
 				destinationType: Camera.DestinationType.DATA_URL,
+				sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
 				encodingType: Camera.EncodingType.JPG,
 				correctOrientation: true
 				});
