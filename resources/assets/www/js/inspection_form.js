@@ -2047,7 +2047,7 @@ function capturePhoto(id){
 	var cameraOptions = {
         quality: 30, // Image quality (0-100)
         destinationType: Camera.DestinationType.FILE_URI,
-        sourceType: Camera.PictureSourceType.CAMERA, // Open the device's camera
+        sourceType: Camera.PictureSourceType.PHOTOLIBRARY, // Open the device's camera
         encodingType: Camera.EncodingType.JPEG, // Image encoding type
         mediaType: Camera.MediaType.PICTURE, // Capture a picture
 		targetWidth: 1024,
