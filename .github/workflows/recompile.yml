@@ -1,0 +1,402 @@
+name: APK Modding Pipeline (XAPK Builder)
+
+on:
+  workflow_dispatch:
+    inputs:
+      xapk_name:
+        description: 'Output XAPK name'
+        required: false
+        default: 'modded_app.xapk'
+      include_obb:
+        description: 'Include OBB files if found'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  mod-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      # ============================================
+      # INSTALL APKTOOL
+      # ============================================
+      - name: Install Apktool
+        run: |
+          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
+          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          sudo chmod +x /usr/local/bin/apktool /usr/local/bin/apktool.jar
+          echo "✅ Apktool installed: $(apktool --version 2>/dev/null || echo 'v3.0.3')"
+      
+      # ============================================
+      # INSTALL ANDROID TOOLS
+      # ============================================
+      - name: Install Android Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk apksigner || echo "Installing minimal..."
+          echo "✅ Tools installed"
+      
+      # ============================================
+      # CHECK DECOMPILED DIRECTORY STRUCTURE
+      # ============================================
+      - name: Check decompiled structure
+        run: |
+          echo "📁 Checking decompiled directory structure..."
+          
+          if [ ! -d "decompiled" ]; then
+            echo "❌ ERROR: decompiled directory not found!"
+            echo "Please ensure you have a 'decompiled' folder with your modifications."
+            exit 1
+          fi
+          
+          echo "📂 Decompiled contents:"
+          ls -la decompiled/
+          
+          # Check if it's a split structure
+          if [ -d "decompiled/splits" ] || [ "$(find decompiled -maxdepth 1 -type d -name "split_*" | wc -l)" -gt 0 ]; then
+            echo "SPLIT_STRUCTURE=true" >> $GITHUB_ENV
+            echo "⚠️ Split APK structure detected"
+          else
+            echo "SPLIT_STRUCTURE=false" >> $GITHUB_ENV
+            echo "✅ Single APK structure detected"
+          fi
+          
+          # Check for OBB files
+          if [ -d "decompiled/assets" ] && [ "$(find decompiled/assets -name "*.obb" | wc -l)" -gt 0 ]; then
+            echo "HAS_OBB=true" >> $GITHUB_ENV
+            echo "🎮 OBB files found in assets"
+          fi
+          
+          # Check for architecture splits
+          if [ -d "decompiled/lib" ]; then
+            echo "📚 Libraries found:"
+            for arch in decompiled/lib/*; do
+              if [ -d "$arch" ]; then
+                count=$(ls -1 "$arch"/*.so 2>/dev/null | wc -l)
+                echo "  - $(basename "$arch"): $count .so files"
+              fi
+            done
+          fi
+      
+      # ============================================
+      # REPACKAGE ALL APKS
+      # ============================================
+      - name: Repackage APKs
+        run: |
+          mkdir -p workspace/xapk_build
+          mkdir -p workspace/output
+          
+          echo "📦 Repackaging APKs..."
+          
+          if [ "${{ env.SPLIT_STRUCTURE }}" = "true" ]; then
+            echo "🔄 Repackaging Split APK structure..."
+            
+            # Find all split directories
+            SPLIT_DIRS=$(find decompiled -maxdepth 1 -type d -name "split_*" -o -name "splits" 2>/dev/null || echo "")
+            
+            if [ -d "decompiled/splits" ]; then
+              # Structure: decompiled/splits/split_name/
+              for split in decompiled/splits/*; do
+                if [ -d "$split" ]; then
+                  split_name=$(basename "$split")
+                  echo "  📦 Repackaging split: $split_name"
+                  apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                fi
+              done
+              # Repackage base
+              echo "  📦 Repackaging base APK"
+              apktool b decompiled -o "workspace/xapk_build/base.apk"
+              
+            elif [ "$(find decompiled -maxdepth 1 -type d -name "split_*" | wc -l)" -gt 0 ]; then
+              # Structure: decompiled/split_name/
+              for split in decompiled/split_*; do
+                if [ -d "$split" ]; then
+                  split_name=$(basename "$split")
+                  echo "  📦 Repackaging split: $split_name"
+                  apktool b "$split" -o "workspace/xapk_build/${split_name}.apk"
+                fi
+              done
+              # Repackage base
+              echo "  📦 Repackaging base APK"
+              apktool b decompiled -o "workspace/xapk_build/base.apk"
+            fi
+            
+          else
+            # Single APK
+            echo "📦 Repackaging single APK..."
+            apktool b decompiled -o "workspace/xapk_build/base.apk"
+          fi
+          
+          echo "✅ All APKs repackaged"
+          echo "📁 Repackaged files:"
+          ls -la workspace/xapk_build/
+      
+      # ============================================
+      # SIGN ALL APKS
+      # ============================================
+      - name: Generate Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore \
+            -alias debug \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US" \
+            -noprompt 2>/dev/null || true
+          echo "✅ Keystore generated"
+      
+      - name: Sign APKs
+        run: |
+          echo "🔑 Signing APKs..."
+          
+          for apk in workspace/xapk_build/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "  Signing: $(basename "$apk")"
+              apksigner sign \
+                --ks debug.keystore \
+                --ks-key-alias debug \
+                --ks-pass pass:android \
+                --key-pass pass:android \
+                "$apk" 2>/dev/null || echo "  ⚠️ Signing failed for $(basename "$apk")"
+            fi
+          done
+          
+          echo "✅ All APKs signed"
+      
+      # ============================================
+      # CREATE XAPK MANIFEST
+      # ============================================
+      - name: Create XAPK manifest
+        run: |
+          echo "📝 Creating XAPK manifest..."
+          
+          # Get package name from AndroidManifest
+          if [ -f "decompiled/AndroidManifest.xml" ]; then
+            PACKAGE_NAME=$(grep -o 'package="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+            VERSION_CODE=$(grep -o 'versionCode="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+            VERSION_NAME=$(grep -o 'versionName="[^"]*"' decompiled/AndroidManifest.xml | head -1 | cut -d'"' -f2)
+          else
+            PACKAGE_NAME="unknown.package"
+            VERSION_CODE="1"
+            VERSION_NAME="1.0"
+          fi
+          
+          echo "📊 App info:"
+          echo "  Package: $PACKAGE_NAME"
+          echo "  Version: $VERSION_NAME ($VERSION_CODE)"
+          
+          # Build manifest.json
+          cat > workspace/xapk_build/manifest.json << EOF
+          {
+            "package": "$PACKAGE_NAME",
+            "version_code": $VERSION_CODE,
+            "version_name": "$VERSION_NAME",
+            "splits": [
+          EOF
+          
+          # Add splits to manifest
+          FIRST=true
+          for apk in workspace/xapk_build/*.apk; do
+            if [ -f "$apk" ]; then
+              APK_NAME=$(basename "$apk")
+              if [ "$APK_NAME" != "base.apk" ] && [ "$APK_NAME" != "manifest.json" ]; then
+                if [ "$FIRST" = true ]; then
+                  echo "    \"$APK_NAME\"" >> workspace/xapk_build/manifest.json
+                  FIRST=false
+                else
+                  echo "    ,\"$APK_NAME\"" >> workspace/xapk_build/manifest.json
+                fi
+              fi
+            fi
+          done
+          
+          cat >> workspace/xapk_build/manifest.json << EOF
+            ],
+            "obb": []
+          }
+          EOF
+          
+          echo "✅ Manifest created:"
+          cat workspace/xapk_build/manifest.json
+      
+      # ============================================
+      # COPY OBB FILES (if any)
+      # ============================================
+      - name: Copy OBB files
+        if: env.HAS_OBB == 'true'
+        run: |
+          echo "🎮 Copying OBB files..."
+          
+          # Find OBB files in decompiled/assets
+          OBB_FILES=$(find decompiled/assets -name "*.obb" -type f 2>/dev/null)
+          
+          if [ -n "$OBB_FILES" ]; then
+            for obb in $OBB_FILES; do
+              echo "  Copying: $(basename "$obb")"
+              cp "$obb" workspace/xapk_build/
+            done
+            
+            # Update manifest with OBB files
+            OBB_LIST=""
+            for obb in workspace/xapk_build/*.obb; do
+              if [ -f "$obb" ]; then
+                OBB_NAME=$(basename "$obb")
+                if [ -z "$OBB_LIST" ]; then
+                  OBB_LIST="    \"$OBB_NAME\""
+                else
+                  OBB_LIST="$OBB_LIST,\n    \"$OBB_NAME\""
+                fi
+              fi
+            done
+            
+            # Update manifest.json with OBB files
+            sed -i "s/\"obb\": \[\]/\"obb\": [\n$OBB_LIST\n  ]/g" workspace/xapk_build/manifest.json
+            
+            echo "✅ OBB files added to XAPK"
+          fi
+      
+      # ============================================
+      # BUILD XAPK
+      # ============================================
+      - name: Build XAPK
+        run: |
+          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
+          
+          echo "📦 Building XAPK: $XAPK_NAME"
+          
+          cd workspace/xapk_build
+          
+          # Create XAPK zip
+          zip -r "../../$XAPK_NAME" ./*
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ XAPK built successfully!"
+            ls -lh "../../$XAPK_NAME"
+          else
+            echo "❌ Failed to build XAPK"
+            exit 1
+          fi
+          
+          cd ../..
+      
+      # ============================================
+      # VERIFY XAPK
+      # ============================================
+      - name: Verify XAPK
+        run: |
+          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
+          
+          echo "🔍 Verifying XAPK structure..."
+          
+          # Check if XAPK exists
+          if [ ! -f "$XAPK_NAME" ]; then
+            echo "❌ XAPK file not found!"
+            exit 1
+          fi
+          
+          # Check XAPK contents
+          echo "📂 XAPK contents:"
+          unzip -l "$XAPK_NAME"
+          
+          # Check manifest
+          unzip -p "$XAPK_NAME" manifest.json > /tmp/manifest.json
+          if [ $? -eq 0 ]; then
+            echo "✅ Manifest found:"
+            cat /tmp/manifest.json
+          else
+            echo "⚠️ No manifest.json found"
+          fi
+          
+          echo "✅ XAPK verification complete"
+      
+      # ============================================
+      # UPLOAD ARTIFACTS
+      # ============================================
+      - name: Upload XAPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: modded-xapk
+          path: ${{ github.event.inputs.xapk_name }}
+          retention-days: 30
+          if-no-files-found: error
+      
+      - name: Upload individual APKs (debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: repackaged-apks
+          path: workspace/xapk_build/*.apk
+          retention-days: 7
+          if-no-files-found: warn
+      
+      - name: Upload XAPK build folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: xapk-build-folder
+          path: workspace/xapk_build/
+          retention-days: 7
+          if-no-files-found: warn
+      
+      # ============================================
+      # PUSH TO REPO (Optional)
+      # ============================================
+      - name: Push XAPK to repository
+        if: success()
+        run: |
+          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
+          
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          # Copy XAPK to root with consistent name
+          cp "$XAPK_NAME" modded_app.xapk
+          
+          git add modded_app.xapk
+          git commit -m "Add modded XAPK [skip ci]" || echo "No changes"
+          git push || echo "Push failed"
+          
+          echo "✅ XAPK pushed to repository: modded_app.xapk"
+      
+      # ============================================
+      # WORKFLOW SUMMARY
+      # ============================================
+      - name: Workflow Summary
+        run: |
+          XAPK_NAME="${{ github.event.inputs.xapk_name }}"
+          
+          echo "========================================="
+          echo "✅ XAPK BUILD COMPLETE!"
+          echo "========================================="
+          echo ""
+          echo "📦 Output file: $XAPK_NAME"
+          echo "📊 Size: $(du -h $XAPK_NAME 2>/dev/null | cut -f1 || echo 'Unknown')"
+          echo ""
+          echo "📥 Download artifacts:"
+          echo "  - modded-xapk: Complete XAPK file"
+          echo "  - repackaged-apks: Individual APKs (debug)"
+          echo "  - xapk-build-folder: XAPK build contents"
+          echo ""
+          echo "📂 XAPK contents:"
+          unzip -l "$XAPK_NAME" 2>/dev/null || echo "  (not available)"
+          echo ""
+          echo "📱 Installation:"
+          echo "  Method 1: Install XAPK with SAIPA or XAPK Installer"
+          echo "  Method 2: Extract and install APKs manually"
+          echo "  Method 3: adb install-multiple base.apk split_*.apk"
+          echo ""
+          echo "========================================="
