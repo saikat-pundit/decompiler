@@ -27,21 +27,36 @@ jobs:
           java-version: '17'
       
       # ============================================
-      # INSTALL APKTOOL (CORRECT VERSION)
+      # INSTALL APKTOOL (SIMPLIFIED & FIXED)
       # ============================================
       - name: Install Apktool
         run: |
-          # Download wrapper script
-          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-          sudo chmod +x /usr/local/bin/apktool
-          
-          # Download the CORRECT file for v3.0.3 (with underscore)
+          # Download apktool jar (the actual tool)
           sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
-          sudo chmod +x /usr/local/bin/apktool.jar
           
-          # Verify installation
-          echo "✅ Apktool installed successfully:"
-          apktool --version
+          # Download and setup the wrapper script
+          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          
+          # Make both executable
+          sudo chmod +x /usr/local/bin/apktool /usr/local/bin/apktool.jar
+          
+          # Create a wrapper script that uses java directly (if the above fails)
+          echo '#!/bin/bash
+          java -jar /usr/local/bin/apktool.jar "$@"' | sudo tee /usr/local/bin/apktool-jar
+          sudo chmod +x /usr/local/bin/apktool-jar
+          
+          # Test installation
+          echo "🔍 Testing Apktool installation..."
+          if apktool --version 2>/dev/null; then
+            echo "✅ Apktool installed successfully (via wrapper)!"
+          elif apktool-jar --version 2>/dev/null; then
+            echo "✅ Apktool installed successfully (via java -jar)!"
+          else
+            echo "⚠️ Apktool installed but version check failed. Continuing anyway..."
+          fi
+          
+          echo "📁 Files installed:"
+          ls -la /usr/local/bin/apktool*
       
       # ============================================
       # INSTALL ANDROID SDK TOOLS (Optional)
@@ -57,6 +72,17 @@ jobs:
           # Check if tools are available (non-fatal)
           command -v zipalign && echo "✅ zipalign found" || echo "⚠️ zipalign not found (optional)"
           command -v apksigner && echo "✅ apksigner found" || echo "⚠️ apksigner not found (optional)"
+      
+      # ============================================
+      # INSTALL PYTHON DEPENDENCIES
+      # ============================================
+      - name: Install Python dependencies
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "ℹ️ No requirements.txt found, skipping"
+          fi
       
       # ============================================
       # REPACKAGE FROM EXISTING DECOMPILED FOLDER
@@ -75,10 +101,22 @@ jobs:
           # Create workspace/output directory
           mkdir -p workspace/output
           
-          # Repackage using apktool
-          apktool b decompiled -o workspace/output/my_app_unsigned.apk
+          # Try repackaging with apktool
+          echo "🔨 Attempting to repackage with apktool..."
+          if apktool b decompiled -o workspace/output/my_app_unsigned.apk; then
+            echo "✅ APK repackaged successfully with apktool!"
+          else
+            echo "🔄 Trying with java -jar alternative..."
+            java -jar /usr/local/bin/apktool.jar b decompiled -o workspace/output/my_app_unsigned.apk
+            if [ $? -eq 0 ]; then
+              echo "✅ APK repackaged successfully with java -jar!"
+            else
+              echo "❌ Repackaging failed with both methods!"
+              exit 1
+            fi
+          fi
           
-          echo "✅ APK repackaged successfully!"
+          echo "📊 Output:"
           ls -la workspace/output/
       
       # ============================================
@@ -125,6 +163,7 @@ jobs:
             echo "✅ APK signed with apksigner!"
           else
             # Fallback to jarsigner
+            echo "🔄 Using jarsigner fallback..."
             jarsigner -verbose \
               -sigalg SHA1withRSA \
               -digestalg SHA1 \
@@ -171,25 +210,12 @@ jobs:
           if-no-files-found: warn
       
       # ============================================
-      # PUSH REPACKAGED APK TO REPO (Optional)
-      # ============================================
-      - name: Push APK to repository (optional)
-        if: false  # Set to 'true' if you want to commit the APK to your repo
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          cp workspace/output/my_app_signed.apk modded_app.apk
-          git add modded_app.apk
-          git commit -m "Add modded APK [skip ci]" || echo "No changes"
-          git push || echo "Push failed"
-      
-      # ============================================
       # WORKFLOW SUMMARY
       # ============================================
       - name: Workflow Summary
         run: |
           echo "========================================="
-          echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
+          echo "✅ WORKFLOW COMPLETED"
           echo "========================================="
           echo ""
           echo "📦 What happened:"
@@ -199,10 +225,6 @@ jobs:
           echo ""
           echo "📥 Download from Artifacts:"
           echo "  - modded-apk: Final signed APK"
-          echo ""
-          echo "📂 File locations:"
-          echo "  - Source: /decompiled/ (in your repo)"
-          echo "  - Output: workspace/output/my_app_signed.apk"
           echo ""
           echo "📊 Output size:"
           ls -lh workspace/output/my_app_signed.apk 2>/dev/null || echo "  (APK not found)"
