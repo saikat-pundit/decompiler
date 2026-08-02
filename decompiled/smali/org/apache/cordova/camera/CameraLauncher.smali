@@ -99,7 +99,7 @@
 
 .field private scanMe:Landroid/net/Uri;
 
-.field private srcType:0
+.field private srcType:I
 
 .field private targetHeight:I
 
