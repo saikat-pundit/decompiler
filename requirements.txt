@@ -1,0 +1,5 @@
+# No external Python dependencies needed
+# All tools must be installed on the system:
+# - apktool
+# - Java (JDK)
+# - Android SDK (zipalign, apksigner)
