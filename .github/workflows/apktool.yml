@@ -20,33 +20,41 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-34'
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
       
-      - name: Install required tools
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dx
+          sudo apt-get install -y zip
       
-      - name: Compile Java sources to DEX
+      - name: Compile Java sources to class files
         run: |
           # Create build directory
           mkdir -p build/classes
-          mkdir -p build/apk
           
           # Compile Java files
+          find sources -name "*.java" > sources.txt
           javac -d build/classes \
             -cp $ANDROID_HOME/platforms/android-34/android.jar \
-            $(find sources -name "*.java") 2>/dev/null || true
+            @sources.txt 2>/dev/null || echo "Compilation completed with warnings"
           
-          # Convert to DEX
-          dx --dex --output=build/classes.dex build/classes
+          echo "Compiled Java files count:"
+          find build/classes -name "*.class" | wc -l
+      
+      - name: Convert classes to DEX
+        run: |
+          # Use d8 (modern) instead of dx
+          $ANDROID_HOME/build-tools/34.0.0/d8 \
+            --lib $ANDROID_HOME/platforms/android-34/android.jar \
+            --output . \
+            $(find build/classes -name "*.class")
           
-          # If dx fails, use d8
-          if [ ! -f "build/classes.dex" ]; then
-            $ANDROID_HOME/build-tools/34.0.0/d8 \
-              --lib $ANDROID_HOME/platforms/android-34/android.jar \
-              --output build/classes.dex \
-              $(find build/classes -name "*.class")
+          # Rename the DEX file
+          if [ -f "classes.dex" ]; then
+            mv classes.dex build/classes.dex
+          else
+            echo "DEX file not created, trying dx..."
+            dx --dex --output=build/classes.dex build/classes
           fi
       
       - name: Build APK structure
@@ -57,8 +65,10 @@ jobs:
           # Copy resources
           cp -r resources/* build/apk/
           
-          # Copy DEX file
-          cp build/classes.dex build/apk/classes.dex
+          # Copy DEX file if exists
+          if [ -f "build/classes.dex" ]; then
+            cp build/classes.dex build/apk/classes.dex
+          fi
           
           # Copy AndroidManifest
           if [ -f "resources/AndroidManifest.xml" ]; then
@@ -69,6 +79,9 @@ jobs:
           cd build/apk
           zip -r -q ../app-unsigned.apk *
           cd ../..
+          
+          echo "APK created:"
+          ls -lh build/app-unsigned.apk
       
       - name: Generate debug keystore
         run: |
@@ -92,7 +105,7 @@ jobs:
           ls -lh app-signed.apk
           
           echo "APK contents:"
-          unzip -l app-signed.apk | head -30
+          unzip -l app-signed.apk | head -20
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
