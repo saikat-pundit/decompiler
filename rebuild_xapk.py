@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-XAPK Rebuilder - Simple version
+XAPK Rebuilder - Fixed version
 """
 
 import os
@@ -9,6 +9,7 @@ import subprocess
 import shutil
 import json
 import zipfile
+import re
 from pathlib import Path
 
 class XAPKRebuilder:
@@ -32,7 +33,10 @@ class XAPKRebuilder:
             if result.returncode != 0:
                 print(f"❌ {desc} failed")
                 if result.stderr:
-                    print(f"   Error: {result.stderr[:300]}")
+                    # Show only first few lines of error
+                    error_lines = result.stderr.strip().split('\n')[:3]
+                    for line in error_lines:
+                        print(f"   {line}")
                 return False
             return True
         except Exception as e:
@@ -47,8 +51,8 @@ class XAPKRebuilder:
                 dirs.append(item)
         return dirs
     
-    def fix_split_manifest(self, dir_path):
-        """Fix AndroidManifest.xml for split APKs (remove split-specific attributes)"""
+    def clean_manifest(self, dir_path):
+        """Completely clean AndroidManifest.xml - remove split attributes and fix issues"""
         manifest = dir_path / "AndroidManifest.xml"
         if not manifest.exists():
             return
@@ -56,16 +60,98 @@ class XAPKRebuilder:
         with open(manifest, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Remove split-specific attributes that cause errors
-        content = content.replace('android:splitTypes="', 'android:splitTypes_removed="')
-        content = content.replace('android:isSplitRequired="', 'android:isSplitRequired_removed="')
+        # COMPLETELY REMOVE split-specific attributes (not rename them)
+        # These attributes are only valid in split APKs, not in regular APKs
         
-        # Ensure extractNativeLibs is present
+        # Remove android:splitTypes attribute entirely
+        content = re.sub(r'\s+android:splitTypes="[^"]*"', '', content)
+        content = re.sub(r'\s+android:isSplitRequired="[^"]*"', '', content)
+        content = re.sub(r'\s+android:splitName="[^"]*"', '', content)
+        
+        # Also remove any other split-related attributes
+        content = re.sub(r'\s+android:configForSplit="[^"]*"', '', content)
+        
+        # Ensure extractNativeLibs is present (for compatibility)
         if 'android:extractNativeLibs' not in content:
             content = content.replace('<application ', '<application android:extractNativeLibs="true" ')
         
+        # Fix versionCode if missing (add it)
+        if 'android:versionCode' not in content:
+            content = content.replace('<manifest ', f'<manifest android:versionCode="{self.version_code}" android:versionName="{self.version_name}" ')
+        
+        # Write cleaned manifest
         with open(manifest, 'w', encoding='utf-8') as f:
             f.write(content)
+        
+        # Also create a backup of original
+        backup = manifest.parent / f"{manifest.stem}.backup"
+        if not backup.exists():
+            shutil.copy2(manifest, backup)
+    
+    def extract_package_info(self):
+        """Extract package info from first valid manifest"""
+        apk_dirs = self.find_apk_dirs()
+        if not apk_dirs:
+            return
+        
+        first_manifest = apk_dirs[0] / "AndroidManifest.xml"
+        if first_manifest.exists():
+            with open(first_manifest, 'r') as f:
+                content = f.read()
+                pkg = re.search(r'package="([^"]+)"', content)
+                if pkg:
+                    self.package = pkg.group(1)
+                vc = re.search(r'versionCode="([^"]+)"', content)
+                if vc:
+                    self.version_code = vc.group(1)
+                vn = re.search(r'versionName="([^"]+)"', content)
+                if vn:
+                    self.version_name = vn.group(1)
+    
+    def create_apktool_yml(self, dir_path):
+        """Create apktool.yml if missing"""
+        yml_file = dir_path / "apktool.yml"
+        if yml_file.exists():
+            return True
+        
+        # Get minSdk from manifest
+        manifest = dir_path / "AndroidManifest.xml"
+        min_sdk = "21"
+        target_sdk = "30"
+        
+        if manifest.exists():
+            with open(manifest, 'r') as f:
+                content = f.read()
+                ms = re.search(r'minSdkVersion="([^"]+)"', content)
+                if ms:
+                    min_sdk = ms.group(1)
+                ts = re.search(r'targetSdkVersion="([^"]+)"', content)
+                if ts:
+                    target_sdk = ts.group(1)
+        
+        yml_content = f"""version: 2.0.0
+apkFileName: {dir_path.name}.apk
+isFrameworkApk: false
+usesFramework:
+  ids:
+  - 1
+sdkInfo:
+  minSdkVersion: '{min_sdk}'
+  targetSdkVersion: '{target_sdk}'
+packageInfo:
+  forcedPackageId: '127'
+versionInfo:
+  versionCode: '{self.version_code}'
+  versionName: '{self.version_name}'
+compressionType: false
+sharedLibrary: false
+unknownFiles: {{}}
+doNotCompress: null
+"""
+        
+        with open(yml_file, 'w') as f:
+            f.write(yml_content)
+        return True
     
     def repackage(self):
         """Repackage all APKs"""
@@ -79,48 +165,44 @@ class XAPKRebuilder:
         
         print(f"   Found {len(apk_dirs)} APK(s)")
         
-        # Extract package info from first dir
-        first_manifest = apk_dirs[0] / "AndroidManifest.xml"
-        if first_manifest.exists():
-            with open(first_manifest, 'r') as f:
-                content = f.read()
-                import re
-                pkg = re.search(r'package="([^"]+)"', content)
-                if pkg:
-                    self.package = pkg.group(1)
-                vc = re.search(r'versionCode="([^"]+)"', content)
-                if vc:
-                    self.version_code = vc.group(1)
-                vn = re.search(r'versionName="([^"]+)"', content)
-                if vn:
-                    self.version_name = vn.group(1)
+        # Extract package info first
+        self.extract_package_info()
         
-        # Repackage each
+        # Clean and repackage each
         for dir_path in apk_dirs:
             name = dir_path.name
             output = self.build_dir / f"{name}.apk"
             
-            # Fix manifest for split APKs
-            self.fix_split_manifest(dir_path)
+            # Clean the manifest (remove split attributes)
+            print(f"   📦 {name}...", end=" ", flush=True)
+            self.clean_manifest(dir_path)
             
-            # Check for apktool.yml
-            if not (dir_path / "apktool.yml").exists():
-                print(f"   ⚠️ Skipping {name} (no apktool.yml)")
+            # Create apktool.yml if missing
+            if not self.create_apktool_yml(dir_path):
+                print("❌ (no apktool.yml)")
                 self.apks_failed.append(name)
                 continue
-            
-            print(f"   📦 {name}...", end=" ", flush=True)
             
             # Repackage
             cmd = ['apktool', 'b', str(dir_path), '-o', str(output)]
             success = self._run_cmd(cmd, f"Building {name}")
             
             if success and output.exists():
-                print("✅")
-                self.apks_repackaged.append(f"{name}.apk")
+                # Check if APK is valid (not empty)
+                if output.stat().st_size > 0:
+                    print("✅")
+                    self.apks_repackaged.append(f"{name}.apk")
+                else:
+                    print("❌ (empty APK)")
+                    self.apks_failed.append(name)
             else:
                 print("❌")
                 self.apks_failed.append(name)
+        
+        if self.apks_repackaged:
+            print(f"   ✅ Repackaged {len(self.apks_repackaged)} APKs")
+        if self.apks_failed:
+            print(f"   ⚠️ Failed: {', '.join(self.apks_failed)}")
         
         return len(self.apks_repackaged) > 0
     
@@ -157,36 +239,53 @@ class XAPKRebuilder:
                 '--ks-key-alias', 'debug',
                 '--ks-pass', 'pass:android',
                 '--key-pass', 'pass:android',
+                '--out', str(apk),  # Sign in-place
                 str(apk)
             ]
             if self._run_cmd(cmd, f"Signing {apk.name}"):
                 signed += 1
         
-        print(f"   Signed {signed}/{len(apks)} APKs")
+        print(f"   ✅ Signed {signed}/{len(apks)} APKs")
         return signed > 0
     
     def build_xapk(self, output_name="modded_app.xapk"):
         """Build XAPK"""
         print(f"📦 Building XAPK: {output_name}")
         
+        # Find all APKs
+        apk_files = list(self.build_dir.glob("*.apk"))
+        if not apk_files:
+            print("❌ No APKs to package!")
+            return False
+        
         # Create manifest
-        manifest = {
+        splits = []
+        for apk in apk_files:
+            if apk.name != "ins_mdm_app.apk" and apk.name != "base.apk":
+                splits.append(apk.name)
+        
+        manifest_data = {
             "package": self.package,
-            "version_code": int(self.version_code),
+            "version_code": int(self.version_code) if self.version_code.isdigit() else 1,
             "version_name": self.version_name,
-            "splits": [f for f in self.apks_repackaged if f != "ins_mdm_app.apk" and f != "base.apk"],
+            "splits": splits,
             "obb": []
         }
         
         manifest_file = self.build_dir / "manifest.json"
         with open(manifest_file, 'w') as f:
-            json.dump(manifest, f, indent=2)
+            json.dump(manifest_data, f, indent=2)
+        
+        print(f"   📋 Manifest: {len(splits)} splits")
         
         # Create XAPK
         try:
             with zipfile.ZipFile(output_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for file_path in self.build_dir.rglob("*"):
-                    if file_path.is_file() and not file_path.name.endswith('.idsig'):
+                    if file_path.is_file():
+                        # Skip signature files
+                        if file_path.name.endswith('.idsig'):
+                            continue
                         arcname = file_path.relative_to(self.build_dir)
                         zipf.write(file_path, arcname)
             
@@ -208,14 +307,21 @@ class XAPKRebuilder:
             print(f"❌ Directory not found: {self.decompiled_dir}")
             return False
         
+        # List what we found
+        apk_dirs = self.find_apk_dirs()
+        print(f"📂 Found {len(apk_dirs)} decompiled APK directories")
+        for d in apk_dirs:
+            print(f"   - {d.name}")
+        
         # Repackage
         if not self.repackage():
-            print("❌ Repackaging failed")
+            print("❌ Repackaging failed completely")
             return False
         
         # Sign
-        if not self.sign_apks():
-            print("⚠️ Signing had issues, continuing...")
+        if self.apks_repackaged:
+            if not self.sign_apks():
+                print("⚠️ Signing had issues, continuing...")
         
         # Build XAPK
         if not self.build_xapk(output_name):
@@ -226,7 +332,7 @@ class XAPKRebuilder:
         print("✅ Done!")
         print(f"📦 Output: {output_name}")
         print(f"📱 Package: {self.package}")
-        print(f"📚 APKs: {len(self.apks_repackaged)} repackaged")
+        print(f"📚 APKs repackaged: {len(self.apks_repackaged)}")
         if self.apks_failed:
             print(f"⚠️ Failed: {', '.join(self.apks_failed)}")
         print("=" * 40)
