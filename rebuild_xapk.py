@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-XAPK Rebuilder - Fixed version
+XAPK Rebuilder - Fixed for armv7_split
 """
 
 import os
@@ -56,9 +56,19 @@ class XAPKRebuilder:
         if not apk_dirs:
             return
         
-        first_manifest = apk_dirs[0] / "AndroidManifest.xml"
-        if first_manifest.exists():
-            with open(first_manifest, 'r') as f:
+        # Try to find the main app (ins_mdm_app or base)
+        main_dir = None
+        for d in apk_dirs:
+            if d.name == "ins_mdm_app" or d.name == "base":
+                main_dir = d
+                break
+        
+        if not main_dir:
+            main_dir = apk_dirs[0]
+        
+        manifest = main_dir / "AndroidManifest.xml"
+        if manifest.exists():
+            with open(manifest, 'r') as f:
                 content = f.read()
                 pkg = re.search(r'package="([^"]+)"', content)
                 if pkg:
@@ -69,6 +79,9 @@ class XAPKRebuilder:
                 vn = re.search(r'versionName="([^"]+)"', content)
                 if vn:
                     self.version_name = vn.group(1)
+        
+        print(f"   Package: {self.package}")
+        print(f"   Version: {self.version_name} ({self.version_code})")
     
     def create_apktool_yml(self, dir_path):
         """Create apktool.yml if missing"""
@@ -123,26 +136,48 @@ doNotCompress: null
         with open(manifest, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # COMPLETELY REMOVE split-specific attributes
+        # REMOVE split-specific attributes (they cause errors in regular APKs)
         content = re.sub(r'\s+android:splitTypes="[^"]*"', '', content)
         content = re.sub(r'\s+android:isSplitRequired="[^"]*"', '', content)
         content = re.sub(r'\s+android:splitName="[^"]*"', '', content)
         content = re.sub(r'\s+android:configForSplit="[^"]*"', '', content)
         
-        # FIX: Add versionCode and versionName to manifest tag if missing
+        # REMOVE the 'split' attribute from manifest tag if present
+        content = re.sub(r'\s+split="[^"]*"', '', content)
+        
+        # ADD versionCode and versionName to manifest tag (if missing)
         if 'android:versionCode' not in content:
-            content = content.replace('<manifest ', f'<manifest android:versionCode="{self.version_code}" ')
+            content = re.sub(
+                r'<manifest\s+',
+                f'<manifest android:versionCode="{self.version_code}" ',
+                content
+            )
         if 'android:versionName' not in content:
-            # Check if versionCode was just added
-            if 'android:versionCode' in content and 'android:versionName' not in content:
-                content = content.replace('android:versionCode="' + self.version_code + '"', 
-                                         f'android:versionCode="{self.version_code}" android:versionName="{self.version_name}"')
+            # Check if we already added versionCode
+            if 'android:versionCode="' + self.version_code + '"' in content and 'android:versionName' not in content:
+                content = re.sub(
+                    r'android:versionCode="[^"]*"',
+                    f'android:versionCode="{self.version_code}" android:versionName="{self.version_name}"',
+                    content
+                )
             else:
-                content = content.replace('<manifest ', f'<manifest android:versionName="{self.version_name}" ')
+                content = re.sub(
+                    r'<manifest\s+',
+                    f'<manifest android:versionName="{self.version_name}" ',
+                    content
+                )
+        
+        # For armv7_split specifically: change extractNativeLibs to true
+        if 'android:extractNativeLibs="false"' in content:
+            content = content.replace('android:extractNativeLibs="false"', 'android:extractNativeLibs="true"')
         
         # Ensure extractNativeLibs is present
         if 'android:extractNativeLibs' not in content:
             content = content.replace('<application ', '<application android:extractNativeLibs="true" ')
+        
+        # Also add hasCode="true" if it's false (since we want the app to run)
+        if 'android:hasCode="false"' in content and 'armv7' in str(dir_path):
+            content = content.replace('android:hasCode="false"', 'android:hasCode="true"')
         
         # Write cleaned manifest
         with open(manifest, 'w', encoding='utf-8') as f:
@@ -162,6 +197,7 @@ doNotCompress: null
         
         print(f"   Found {len(apk_dirs)} APK(s)")
         
+        # Extract package info first
         self.extract_package_info()
         
         for dir_path in apk_dirs:
