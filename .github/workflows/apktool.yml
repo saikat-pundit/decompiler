@@ -17,62 +17,23 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       
-      - name: Install apktool
+      - name: Build APK by zipping
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
+          # Create APK structure
+          mkdir -p build/apk
           
-          wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-          chmod +x apktool
-          sudo mv apktool /usr/local/bin/
+          # Copy everything from resources
+          cp -r resources/* build/apk/
           
-          wget -q https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
-          sudo mv apktool_2.9.3.jar /usr/local/bin/apktool.jar
-      
-      - name: Create apktool.yml
-        run: |
-          cat > apktool.yml << 'EOF'
-          !brut.androlib.meta.MetaInfo
-          apkFileName: app.apk
-          compressionType: false
-          doNotCompress:
-          - resources.arsc
-          - png
-          - jpg
-          - gif
-          - wav
-          - mp4
-          - webp
-          - ogg
-          - md
-          - bin
-          - ttf
-          - json
-          - xml
-          - svg
-          - otf
-          isFrameworkApk: false
-          packageInfo:
-            forcedPackageId: '127'
-            renameManifestPackage: null
-          sdkInfo:
-            minSdkVersion: '24'
-            targetSdkVersion: '36'
-          sharedLibrary: false
-          unknownFiles: {}
-          usesFramework:
-            ids:
-            - 1
-            tag: null
-          version: 2.9.3
-          versionInfo:
-            versionCode: '10907'
-            versionName: 1.9.7
-          EOF
-      
-      - name: Rebuild APK
-        run: |
-          apktool b . -o app-unsigned.apk
+          # Ensure AndroidManifest is in root
+          if [ -f "resources/AndroidManifest.xml" ]; then
+            cp resources/AndroidManifest.xml build/apk/
+          fi
+          
+          # Zip everything
+          cd build/apk
+          zip -r -q ../app-unsigned.apk *
+          cd ../..
       
       - name: Generate debug keystore
         run: |
@@ -86,9 +47,9 @@ jobs:
         run: |
           jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
-            -keypass android app-unsigned.apk androiddebugkey
+            -keypass android build/app-unsigned.apk androiddebugkey
           
-          mv app-unsigned.apk app-signed.apk
+          mv build/app-unsigned.apk app-signed.apk
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
