@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-XAPK Rebuilder - Fixed for armv7_split
+XAPK Rebuilder - Complete working version
 """
 
 import os
@@ -19,7 +19,6 @@ class XAPKRebuilder:
         self.build_dir = self.output_dir / "xapk_build"
         self.build_dir.mkdir(parents=True, exist_ok=True)
         
-        # Store build info
         self.package = "unknown"
         self.version_code = "1"
         self.version_name = "1.0"
@@ -27,7 +26,6 @@ class XAPKRebuilder:
         self.apks_failed = []
     
     def _run_cmd(self, cmd, desc=""):
-        """Run command and return success"""
         try:
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
@@ -43,7 +41,6 @@ class XAPKRebuilder:
             return False
     
     def find_apk_dirs(self):
-        """Find all directories with AndroidManifest.xml"""
         dirs = []
         for item in self.decompiled_dir.iterdir():
             if item.is_dir() and (item / "AndroidManifest.xml").exists():
@@ -51,12 +48,10 @@ class XAPKRebuilder:
         return dirs
     
     def extract_package_info(self):
-        """Extract package info from first valid manifest"""
         apk_dirs = self.find_apk_dirs()
         if not apk_dirs:
             return
         
-        # Try to find the main app (ins_mdm_app or base)
         main_dir = None
         for d in apk_dirs:
             if d.name == "ins_mdm_app" or d.name == "base":
@@ -84,7 +79,6 @@ class XAPKRebuilder:
         print(f"   Version: {self.version_name} ({self.version_code})")
     
     def create_apktool_yml(self, dir_path):
-        """Create apktool.yml if missing"""
         yml_file = dir_path / "apktool.yml"
         if yml_file.exists():
             return True
@@ -127,8 +121,37 @@ doNotCompress: null
             f.write(yml_content)
         return True
     
+    def fix_armv7_manifest_force(self):
+        """Force replace armv7_split/AndroidManifest.xml with working version"""
+        manifest_path = self.decompiled_dir / "armv7_split" / "AndroidManifest.xml"
+        
+        if not manifest_path.exists():
+            print("   ⚠️ armv7_split/AndroidManifest.xml not found")
+            return False
+        
+        fixed_content = '''<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="ins.mdm.app"
+    android:versionCode="1"
+    android:versionName="1.0">
+    
+    <application
+        android:extractNativeLibs="true"
+        android:hasCode="true">
+        
+        <meta-data
+            android:name="com.android.vending.derived.apk.id"
+            android:value="2"/>
+    </application>
+</manifest>'''
+        
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            f.write(fixed_content)
+        
+        print("   ✅ Force-replaced armv7_split/AndroidManifest.xml")
+        return True
+    
     def clean_manifest(self, dir_path):
-        """Completely clean AndroidManifest.xml - remove split attributes and fix issues"""
         manifest = dir_path / "AndroidManifest.xml"
         if not manifest.exists():
             return
@@ -136,16 +159,12 @@ doNotCompress: null
         with open(manifest, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # REMOVE split-specific attributes (they cause errors in regular APKs)
         content = re.sub(r'\s+android:splitTypes="[^"]*"', '', content)
         content = re.sub(r'\s+android:isSplitRequired="[^"]*"', '', content)
         content = re.sub(r'\s+android:splitName="[^"]*"', '', content)
         content = re.sub(r'\s+android:configForSplit="[^"]*"', '', content)
-        
-        # REMOVE the 'split' attribute from manifest tag if present
         content = re.sub(r'\s+split="[^"]*"', '', content)
         
-        # ADD versionCode and versionName to manifest tag (if missing)
         if 'android:versionCode' not in content:
             content = re.sub(
                 r'<manifest\s+',
@@ -153,7 +172,6 @@ doNotCompress: null
                 content
             )
         if 'android:versionName' not in content:
-            # Check if we already added versionCode
             if 'android:versionCode="' + self.version_code + '"' in content and 'android:versionName' not in content:
                 content = re.sub(
                     r'android:versionCode="[^"]*"',
@@ -167,27 +185,15 @@ doNotCompress: null
                     content
                 )
         
-        # For armv7_split specifically: change extractNativeLibs to true
-        if 'android:extractNativeLibs="false"' in content:
-            content = content.replace('android:extractNativeLibs="false"', 'android:extractNativeLibs="true"')
-        
-        # Ensure extractNativeLibs is present
         if 'android:extractNativeLibs' not in content:
             content = content.replace('<application ', '<application android:extractNativeLibs="true" ')
         
-        # Also add hasCode="true" if it's false (since we want the app to run)
-        if 'android:hasCode="false"' in content and 'armv7' in str(dir_path):
-            content = content.replace('android:hasCode="false"', 'android:hasCode="true"')
-        
-        # Write cleaned manifest
         with open(manifest, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        # Create apktool.yml for this specific split
         self.create_apktool_yml(dir_path)
     
     def repackage(self):
-        """Repackage all APKs"""
         print("📦 Repackaging APKs...")
         
         apk_dirs = self.find_apk_dirs()
@@ -197,8 +203,11 @@ doNotCompress: null
         
         print(f"   Found {len(apk_dirs)} APK(s)")
         
-        # Extract package info first
         self.extract_package_info()
+        
+        # FORCE FIX armv7_split
+        if (self.decompiled_dir / "armv7_split").exists():
+            self.fix_armv7_manifest_force()
         
         for dir_path in apk_dirs:
             name = dir_path.name
@@ -206,10 +215,12 @@ doNotCompress: null
             
             print(f"   📦 {name}...", end=" ", flush=True)
             
-            # Clean the manifest
-            self.clean_manifest(dir_path)
+            if name != "armv7_split":
+                self.clean_manifest(dir_path)
             
-            # Repackage
+            # Make sure apktool.yml exists
+            self.create_apktool_yml(dir_path)
+            
             cmd = ['apktool', 'b', str(dir_path), '-o', str(output)]
             success = self._run_cmd(cmd, f"Building {name}")
             
@@ -228,7 +239,6 @@ doNotCompress: null
         return len(self.apks_repackaged) > 0
     
     def sign_apks(self):
-        """Sign all APKs"""
         print("🔑 Signing APKs...")
         
         apks = list(self.build_dir.glob("*.apk"))
@@ -267,7 +277,6 @@ doNotCompress: null
         return signed > 0
     
     def build_xapk(self, output_name="modded_app.xapk"):
-        """Build XAPK"""
         print(f"📦 Building XAPK: {output_name}")
         
         apk_files = list(self.build_dir.glob("*.apk"))
@@ -311,7 +320,6 @@ doNotCompress: null
             return False
     
     def run(self, output_name="modded_app.xapk"):
-        """Run full pipeline"""
         print("=" * 40)
         print("🚀 XAPK Rebuilder")
         print("=" * 40)
