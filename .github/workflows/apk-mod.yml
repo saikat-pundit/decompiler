@@ -1,4 +1,4 @@
-name: APK Modding Pipeline
+name: APK Modding with Docker
 
 on:
   workflow_dispatch:
@@ -15,124 +15,35 @@ jobs:
         with:
           fetch-depth: 0
           
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          
-      # ============================================
-      # FIXED: Install Apktool with working version
-      # ============================================
-      - name: Install Apktool
+      - name: Decompile, Edit, and Repackage
         run: |
-          # Download the wrapper script
-          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-          sudo chmod +x /usr/local/bin/apktool
+          # Use Docker with Apktool pre-installed
+          docker run --rm -v $(pwd):/workspace -w /workspace \
+            openjdk:17-jdk-slim bash -c "
+            # Install apktool inside container
+            apt-get update && apt-get install -y wget
+            wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+            chmod +x /usr/local/bin/apktool
+            wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool.jar
+            chmod +x /usr/local/bin/apktool.jar
+            
+            # Decompile
+            apktool d my.apk -o decompiled -f
+            
+            # === YOUR EDITS HERE ===
+            # sed -i 's/old/new/g' decompiled/AndroidManifest.xml
+            
+            # Repackage
+            apktool b decompiled -o my_app.apk
+            
+            echo '✅ Done!'
+          "
           
-          # Download a CONFIRMED WORKING version (v2.9.3 is stable)
-          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool.jar
-          
-          # Test if it works
-          apktool --version || echo "⚠️ Apktool version check failed, but continuing..."
-          
-          echo "✅ Apktool installed successfully"
-          
-      - name: Install Android SDK Tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y android-sdk
-          echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
-          
-      # ============================================
-      # DECOMPILE
-      # ============================================
-      - name: Decompile APK
-        run: |
-          if [ ! -f "my.apk" ]; then
-            echo "❌ ERROR: my.apk not found!"
-            exit 1
-          fi
-          
-          # Clean and decompile
-          rm -rf decompiled
-          apktool d my.apk -o decompiled -f
-          
-          echo "✅ APK decompiled successfully"
-          echo "📁 Structure:"
-          ls -la decompiled/
-          
-      # ============================================
-      # EDIT HERE - Your modifications
-      # ============================================
-      - name: Apply modifications
-        run: |
-          echo "📝 Applying modifications..."
-          
-          # === UNCOMMENT AND EDIT THESE AS NEEDED ===
-          
-          # Example: Remove a permission
-          # sed -i '/<uses-permission android:name="android.permission.READ_CONTACTS"\/>/d' decompiled/AndroidManifest.xml
-          
-          # Example: Change app name
-          # sed -i 's/My App/My Modded App/g' decompiled/res/values/strings.xml
-          
-          # Example: Modify Smali code
-          # sed -i 's/const\/4 v0, 0x1/const\/4 v0, 0x0/g' decompiled/smali/com/example/MainActivity.smali
-          
-          echo "✅ Modifications applied"
-          
-      # ============================================
-      # REPACKAGE
-      # ============================================
-      - name: Repackage APK
-        run: |
-          apktool b decompiled -o my_app_unsigned.apk
-          echo "✅ APK repackaged"
-          
-      # ============================================
-      # ALIGN & SIGN
-      # ============================================
-      - name: Align APK
-        run: |
-          zipalign -v -p 4 my_app_unsigned.apk my_app_aligned.apk || true
-          echo "✅ APK aligned"
-          
-      - name: Sign APK
-        run: |
-          # Generate debug keystore
-          keytool -genkey -v -keystore debug.keystore \
-            -alias debug \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
-            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US" \
-            -noprompt 2>/dev/null || true
-          
-          # Sign the APK
-          apksigner sign \
-            --ks debug.keystore \
-            --ks-key-alias debug \
-            --ks-pass pass:android \
-            --key-pass pass:android \
-            my_app_aligned.apk 2>/dev/null || true
-          
-          echo "✅ APK signed"
-          
-      - name: Verify APK
-        run: |
-          apksigner verify my_app_aligned.apk || echo "⚠️ Verification warning (may still work)"
-          
-      # ============================================
-      # UPLOAD ARTIFACTS
-      # ============================================
-      - name: Upload modded APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: modded-apk
-          path: my_app_aligned.apk
+          path: my_app.apk
           retention-days: 30
           
       - name: Upload decompiled files
@@ -142,37 +53,12 @@ jobs:
           path: decompiled/
           retention-days: 30
           
-      # ============================================
-      # PUSH DECOMPILED FILES TO REPO
-      # ============================================
-      - name: Push decompiled files to repository
+      - name: Push to repo
         run: |
-          if [ -d "decompiled" ]; then
-            # Remove old decompiled folder
-            git rm -rf decompiled 2>/dev/null || true
-            
-            # Copy decompiled to root
-            cp -r decompiled .
-            
-            # Commit and push
-            git config user.name "GitHub Actions Bot"
-            git config user.email "actions@github.com"
-            git add decompiled/
-            git commit -m "Update decompiled files [skip ci]" || echo "No changes"
-            git push || echo "Push failed, but continuing"
-            
-            echo "✅ Decompiled files pushed to repo"
-          fi
-          
-      - name: Workflow Summary
-        run: |
-          echo "========================================="
-          echo "✅ WORKFLOW COMPLETED"
-          echo "========================================="
-          echo ""
-          echo "📦 Download artifacts:"
-          echo "  - modded-apk: Final signed APK"
-          echo "  - decompiled-files: Full decompiled structure"
-          echo ""
-          echo "📂 Decompiled files also in repo: /decompiled/"
-          echo "========================================="
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git rm -rf decompiled 2>/dev/null || true
+          cp -r decompiled .
+          git add decompiled/
+          git commit -m "Update decompiled files [skip ci]" || echo "No changes"
+          git push || true
