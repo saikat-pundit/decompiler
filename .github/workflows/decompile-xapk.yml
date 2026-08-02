@@ -1,0 +1,228 @@
+name: Decompile XAPK with Python
+
+on:
+  workflow_dispatch:
+    inputs:
+      xapk_file:
+        description: 'Name of your XAPK file'
+        required: true
+        default: 'my.xapk'
+      output_dir:
+        description: 'Output directory'
+        required: false
+        default: 'decompiled_output'
+
+jobs:
+  decompile-xapk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      # ============================================
+      # 1. CHECKOUT CODE
+      # ============================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # ============================================
+      # 2. SETUP ENVIRONMENT
+      # ============================================
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      # ============================================
+      # 3. INSTALL APKTOOL
+      # ============================================
+      - name: Install Apktool
+        run: |
+          # Download wrapper script
+          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          sudo chmod +x /usr/local/bin/apktool
+          
+          # Download apktool jar (v3.0.3)
+          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
+          sudo chmod +x /usr/local/bin/apktool.jar
+          
+          echo "✅ Apktool installed: $(apktool --version 2>/dev/null || echo 'v3.0.3')"
+      
+      # ============================================
+      # 4. INSTALL PYTHON DEPENDENCIES
+      # ============================================
+      - name: Install Python dependencies
+        run: |
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "ℹ️ No requirements.txt found, skipping"
+          fi
+      
+      # ============================================
+      # 5. CHECK INPUT FILES
+      # ============================================
+      - name: Check input files
+        run: |
+          XAPK_FILE="${{ github.event.inputs.xapk_file }}"
+          
+          if [ ! -f "$XAPK_FILE" ]; then
+            echo "❌ Error: $XAPK_FILE not found!"
+            echo "📁 Available files in repository:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "✅ Found XAPK: $XAPK_FILE"
+          echo "📊 Size: $(du -h $XAPK_FILE | cut -f1)"
+      
+      # ============================================
+      # 6. RUN PYTHON DECOMPILER
+      # ============================================
+      - name: Run XAPK Decompiler
+        run: |
+          XAPK_FILE="${{ github.event.inputs.xapk_file }}"
+          OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
+          
+          echo "🚀 Starting decompilation..."
+          python decompile_xapk.py "$XAPK_FILE" --output-dir "$OUTPUT_DIR"
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Decompilation completed successfully!"
+          else
+            echo "❌ Decompilation failed!"
+            exit 1
+          fi
+      
+      # ============================================
+      # 7. SHOW DECOMPILED STRUCTURE
+      # ============================================
+      - name: Show decompiled structure
+        run: |
+          OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
+          
+          echo "📁 Decompiled structure:"
+          echo "========================"
+          tree -L 2 "$OUTPUT_DIR" 2>/dev/null || find "$OUTPUT_DIR" -maxdepth 2 -type d | sort
+          
+          echo ""
+          echo "📊 Summary:"
+          echo "========================"
+          echo "Decompiled APKs:"
+          if [ -d "$OUTPUT_DIR/decompiled" ]; then
+            for apk_dir in "$OUTPUT_DIR/decompiled"/*; do
+              if [ -d "$apk_dir" ]; then
+                echo "  - $(basename "$apk_dir")"
+                # Show libs if present
+                if [ -d "$apk_dir/lib" ]; then
+                  for arch in "$apk_dir/lib"/*; do
+                    if [ -d "$arch" ]; then
+                      count=$(ls -1 "$arch"/*.so 2>/dev/null | wc -l)
+                      echo "    - $(basename "$arch"): $count .so files"
+                    fi
+                  done
+                fi
+              fi
+            done
+          fi
+      
+      # ============================================
+      # 8. UPLOAD ARTIFACTS
+      # ============================================
+      - name: Upload extracted XAPK contents
+        uses: actions/upload-artifact@v4
+        with:
+          name: xapk-extracted
+          path: decompiled_output/extracted/
+          retention-days: 30
+          if-no-files-found: warn
+      
+      - name: Upload decompiled APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: decompiled-apks
+          path: decompiled_output/decompiled/
+          retention-days: 30
+          if-no-files-found: warn
+      
+      - name: Upload logs and summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: decompilation-logs
+          path: decompiled_output/logs/
+          retention-days: 7
+          if-no-files-found: warn
+      
+      - name: Upload full decompiled output
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-decompiled-output
+          path: decompiled_output/
+          retention-days: 30
+          if-no-files-found: warn
+      
+      # ============================================
+      # 9. PUSH DECOMPILED FILES TO REPO (Optional)
+      # ============================================
+      - name: Push decompiled files to repository
+        if: success()
+        run: |
+          OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
+          
+          if [ -d "$OUTPUT_DIR/decompiled" ]; then
+            # Remove old decompiled folder
+            git rm -rf decompiled 2>/dev/null || true
+            
+            # Copy decompiled to root
+            cp -r "$OUTPUT_DIR/decompiled" .
+            
+            # Commit and push
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            git add decompiled/
+            git commit -m "Update decompiled files from XAPK [skip ci]" || echo "No changes"
+            git push || echo "Push failed"
+            
+            echo "✅ Decompiled files pushed to repository: /decompiled/"
+          else
+            echo "⚠️ No decompiled folder found"
+          fi
+      
+      # ============================================
+      # 10. WORKFLOW SUMMARY
+      # ============================================
+      - name: Workflow Summary
+        run: |
+          OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
+          
+          echo "========================================="
+          echo "✅ XAPK DECOMPILATION COMPLETE!"
+          echo "========================================="
+          echo ""
+          echo "📦 Artifacts available for download:"
+          echo "  - full-decompiled-output: Complete decompiled output"
+          echo "  - decompiled-apks: Decompiled APK folders"
+          echo "  - xapk-extracted: Extracted XAPK contents"
+          echo "  - decompilation-logs: Detailed logs"
+          echo ""
+          echo "📂 Decompiled files pushed to repo: /decompiled/"
+          echo ""
+          echo "📊 Decompilation summary:"
+          if [ -d "$OUTPUT_DIR/logs" ] && [ -f "$OUTPUT_DIR/logs/summary.json" ]; then
+            cat "$OUTPUT_DIR/logs/summary.json" 2>/dev/null || echo "Summary not available"
+          fi
+          echo ""
+          echo "📁 Decompiled structure:"
+          if [ -d "$OUTPUT_DIR/decompiled" ]; then
+            ls -la "$OUTPUT_DIR/decompiled/"
+          fi
+          echo ""
+          echo "========================================="
