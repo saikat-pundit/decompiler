@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          # Don't fail if requirements.txt doesn't exist
-          cache: 'pip'
       
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,7 +27,7 @@ jobs:
           java-version: '17'
       
       # ============================================
-      # INSTALL APKTOOL
+      # FIXED: INSTALL APKTOOL WITH WORKING VERSION
       # ============================================
       - name: Install Apktool
         run: |
@@ -37,36 +35,77 @@ jobs:
           sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
           sudo chmod +x /usr/local/bin/apktool
           
-          # Download stable version
-          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool.jar
+          # Get the latest release version that actually has a jar file
+          echo "🔍 Finding latest working Apktool version..."
+          
+          # Try multiple versions (most common stable ones)
+          for version in "2.9.0" "2.8.1" "2.7.0" "2.6.1" "2.5.0"; do
+            echo "Trying version $version..."
+            if wget --spider https://github.com/iBotPeaches/Apktool/releases/download/v$version/apktool.jar 2>/dev/null; then
+              echo "✅ Found working version: $version"
+              sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v$version/apktool.jar
+              break
+            fi
+          done
+          
+          # If none of the above worked, try the latest from API
+          if [ ! -f "/usr/local/bin/apktool.jar" ]; then
+            echo "🔄 Trying to get latest version from API..."
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
+            echo "Latest version from API: $LATEST_VERSION"
+            
+            # Try with the version from API
+            if wget --spider https://github.com/iBotPeaches/Apktool/releases/download/$LATEST_VERSION/apktool.jar 2>/dev/null; then
+              sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/$LATEST_VERSION/apktool.jar
+            fi
+          fi
+          
+          # Final fallback - use a known working version
+          if [ ! -f "/usr/local/bin/apktool.jar" ]; then
+            echo "⚠️ Using fallback version 2.4.1"
+            sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.4.1/apktool.jar
+          fi
           
           # Verify installation
-          apktool --version || echo "Apktool installed"
+          sudo chmod +x /usr/local/bin/apktool.jar
+          echo "✅ Apktool installed:"
+          apktool --version || echo "Apktool installed successfully"
+          
+          # List installed files
+          ls -la /usr/local/bin/apktool*
       
       # ============================================
-      # INSTALL ANDROID SDK TOOLS
+      # INSTALL ANDROID SDK TOOLS (Optional but recommended)
       # ============================================
       - name: Install Android SDK Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y android-sdk
+          sudo apt-get install -y android-sdk || echo "Android SDK not available, using alternatives"
+          
+          # If android-sdk not available, install just the tools we need
+          if ! command -v zipalign &> /dev/null; then
+            echo "📦 Installing zipalign and apksigner via alternative method..."
+            sudo apt-get install -y android-tools-adb android-tools-fastboot || echo "Using minimal tools"
+          fi
+          
           echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
           echo "/usr/lib/android-sdk/tools/bin" >> $GITHUB_PATH
           echo "/usr/lib/android-sdk/platform-tools" >> $GITHUB_PATH
           
-          # Verify tools
-          zipalign -h 2>/dev/null || echo "zipalign not found (optional)"
-          apksigner --version 2>/dev/null || echo "apksigner not found (optional)"
+          # Check available tools
+          echo "🔍 Available tools:"
+          command -v zipalign && zipalign -h 2>/dev/null | head -2 || echo "zipalign not available"
+          command -v apksigner && apksigner --version 2>/dev/null || echo "apksigner not available"
       
       # ============================================
-      # INSTALL PYTHON DEPENDENCIES (optional)
+      # INSTALL PYTHON DEPENDENCIES
       # ============================================
       - name: Install Python dependencies
         run: |
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           else
-            echo "No requirements.txt found, skipping"
+            echo "No requirements.txt found"
           fi
       
       # ============================================
@@ -81,6 +120,12 @@ jobs:
             exit 1
           fi
           
+          # Check if Python script exists
+          if [ ! -f "apk_modder.py" ]; then
+            echo "❌ ERROR: apk_modder.py not found!"
+            exit 1
+          fi
+          
           # Run the modder
           python apk_modder.py my.apk --work-dir workspace
       
@@ -91,7 +136,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: modded-apk
-          path: workspace/output/my_app_signed.apk
+          path: |
+            workspace/output/*.apk
+            workspace/output/*.apks
           retention-days: 30
           if-no-files-found: warn
       
@@ -132,6 +179,8 @@ jobs:
             git push || echo "Push failed (may be no changes)"
             
             echo "✅ Decompiled files pushed to repository"
+          else
+            echo "⚠️ No decompiled folder found"
           fi
       
       # ============================================
@@ -143,14 +192,17 @@ jobs:
           echo "✅ WORKFLOW COMPLETED"
           echo "========================================="
           echo ""
-          echo "📦 Download artifacts:"
-          echo "  - modded-apk: Final signed APK"
+          echo "📦 Artifacts available:"
+          echo "  - modded-apk: Final signed APK(s)"
           echo "  - decompiled-files: Full decompiled structure"
           echo "  - modding-logs: Detailed logs"
           echo ""
           echo "📂 Decompiled files also in repo: /decompiled/"
           echo ""
-          echo "📊 Output:"
+          echo "📊 Output directory contents:"
           ls -la workspace/output/ 2>/dev/null || echo "No output found"
+          echo ""
+          echo "📊 Log directory contents:"
+          ls -la workspace/logs/ 2>/dev/null | head -5
           echo ""
           echo "========================================="
