@@ -1,7 +1,17 @@
-name: APK Modding with Docker
+name: APK Modding with Python
 
 on:
   workflow_dispatch:
+    inputs:
+      mod_config:
+        description: 'Path to mods configuration JSON (optional)'
+        required: false
+        default: 'mods/mods_config.json'
+      skip_cleanup:
+        description: 'Skip cleanup after build'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   mod-apk:
@@ -14,51 +24,126 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Decompile, Edit, and Repackage
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Install Python dependencies
         run: |
-          # Use Docker with Apktool pre-installed
-          docker run --rm -v $(pwd):/workspace -w /workspace \
-            openjdk:17-jdk-slim bash -c "
-            # Install apktool inside container
-            apt-get update && apt-get install -y wget
-            wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
-            chmod +x /usr/local/bin/apktool
-            wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool.jar
-            chmod +x /usr/local/bin/apktool.jar
-            
-            # Decompile
-            apktool d my.apk -o decompiled -f
-            
-            # === YOUR EDITS HERE ===
-            # sed -i 's/old/new/g' decompiled/AndroidManifest.xml
-            
-            # Repackage
-            apktool b decompiled -o my_app.apk
-            
-            echo '✅ Done!'
-          "
+          pip install --upgrade pip
+          pip install -r requirements.txt || echo "No requirements.txt found"
+      
+      # ============================================
+      # INSTALL APKTOOL
+      # ============================================
+      - name: Install Apktool
+        run: |
+          # Download wrapper script
+          sudo wget -O /usr/local/bin/apktool https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          sudo chmod +x /usr/local/bin/apktool
           
-      - name: Upload APK
+          # Download stable version
+          sudo wget -O /usr/local/bin/apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool.jar
+          
+          # Verify installation
+          apktool --version || echo "Apktool installed"
+      
+      # ============================================
+      # INSTALL ANDROID SDK TOOLS
+      # ============================================
+      - name: Install Android SDK Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y android-sdk
+          echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
+          echo "/usr/lib/android-sdk/tools/bin" >> $GITHUB_PATH
+          echo "/usr/lib/android-sdk/platform-tools" >> $GITHUB_PATH
+          
+          # Verify tools
+          zipalign -h || echo "zipalign not found"
+          apksigner --version || echo "apksigner not found"
+      
+      # ============================================
+      # RUN THE PYTHON MODDER
+      # ============================================
+      - name: Run APK Modder
+        run: |
+          python apk_modder.py my.apk --work-dir workspace
+      
+      # ============================================
+      # UPLOAD ARTIFACTS
+      # ============================================
+      - name: Upload modded APK
         uses: actions/upload-artifact@v4
         with:
           name: modded-apk
-          path: my_app.apk
+          path: workspace/output/my_app_signed.apk
           retention-days: 30
-          
+      
       - name: Upload decompiled files
         uses: actions/upload-artifact@v4
         with:
           name: decompiled-files
-          path: decompiled/
+          path: workspace/decompiled/
           retention-days: 30
-          
-      - name: Push to repo
+      
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: modding-logs
+          path: workspace/logs/
+          retention-days: 7
+      
+      # ============================================
+      # PUSH DECOMPILED FILES TO REPO
+      # ============================================
+      - name: Push decompiled files to repository
         run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git rm -rf decompiled 2>/dev/null || true
-          cp -r decompiled .
-          git add decompiled/
-          git commit -m "Update decompiled files [skip ci]" || echo "No changes"
-          git push || true
+          if [ -d "workspace/decompiled" ]; then
+            # Remove old decompiled folder
+            git rm -rf decompiled 2>/dev/null || true
+            
+            # Copy decompiled to root
+            cp -r workspace/decompiled .
+            
+            # Commit and push
+            git config user.name "GitHub Actions Bot"
+            git config user.email "actions@github.com"
+            git add decompiled/
+            git commit -m "Update decompiled files [skip ci]" || echo "No changes"
+            git push || echo "Push failed"
+            
+            echo "✅ Decompiled files pushed to repository"
+          fi
+      
+      # ============================================
+      # SUMMARY
+      # ============================================
+      - name: Workflow Summary
+        run: |
+          echo "========================================="
+          echo "✅ WORKFLOW COMPLETED SUCCESSFULLY"
+          echo "========================================="
+          echo ""
+          echo "📦 Download artifacts:"
+          echo "  - modded-apk: Final signed APK"
+          echo "  - decompiled-files: Full decompiled structure"
+          echo "  - modding-logs: Detailed logs"
+          echo ""
+          echo "📂 Decompiled files also in repo: /decompiled/"
+          echo ""
+          echo "📊 Log files:"
+          ls -la workspace/logs/ 2>/dev/null || echo "No logs found"
+          echo ""
+          echo "📁 Output files:"
+          ls -la workspace/output/ 2>/dev/null || echo "No output found"
+          echo "========================================="
