@@ -17,71 +17,70 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
-      
-      - name: Install dependencies
+      - name: Install apktool
         run: |
           sudo apt-get update
-          sudo apt-get install -y zip
+          sudo apt-get install -y wget
+          
+          # Download apktool
+          wget -q https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool
+          chmod +x apktool
+          sudo mv apktool /usr/local/bin/
+          
+          wget -q https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
+          sudo mv apktool_2.9.3.jar /usr/local/bin/apktool.jar
       
-      - name: Compile Java sources to class files
+      - name: Prepare for apktool
         run: |
-          # Create build directory
-          mkdir -p build/classes
-          
-          # Compile Java files
-          find sources -name "*.java" > sources.txt
-          javac -d build/classes \
-            -cp $ANDROID_HOME/platforms/android-34/android.jar \
-            @sources.txt 2>/dev/null || echo "Compilation completed with warnings"
-          
-          echo "Compiled Java files count:"
-          find build/classes -name "*.class" | wc -l
-      
-      - name: Convert classes to DEX
-        run: |
-          # Use d8 (modern) instead of dx
-          $ANDROID_HOME/build-tools/34.0.0/d8 \
-            --lib $ANDROID_HOME/platforms/android-34/android.jar \
-            --output . \
-            $(find build/classes -name "*.class")
-          
-          # Rename the DEX file
-          if [ -f "classes.dex" ]; then
-            mv classes.dex build/classes.dex
-          else
-            echo "DEX file not created, trying dx..."
-            dx --dex --output=build/classes.dex build/classes
-          fi
-      
-      - name: Build APK structure
-        run: |
-          # Create APK structure
-          mkdir -p build/apk
-          
-          # Copy resources
-          cp -r resources/* build/apk/
-          
-          # Copy DEX file if exists
-          if [ -f "build/classes.dex" ]; then
-            cp build/classes.dex build/apk/classes.dex
+          # Apktool expects resources/ at root with AndroidManifest.xml inside it
+          # Move AndroidManifest.xml into resources/ if it's outside
+          if [ -f "AndroidManifest.xml" ]; then
+            mv AndroidManifest.xml resources/
           fi
           
-          # Copy AndroidManifest
-          if [ -f "resources/AndroidManifest.xml" ]; then
-            cp resources/AndroidManifest.xml build/apk/
-          fi
-          
-          # Zip into APK
-          cd build/apk
-          zip -r -q ../app-unsigned.apk *
-          cd ../..
-          
-          echo "APK created:"
-          ls -lh build/app-unsigned.apk
+          # Create apktool.yml
+          cat > apktool.yml << 'EOF'
+          !brut.androlib.meta.MetaInfo
+          apkFileName: app.apk
+          compressionType: false
+          doNotCompress:
+          - resources.arsc
+          - png
+          - jpg
+          - gif
+          - wav
+          - mp4
+          - webp
+          - ogg
+          - md
+          - bin
+          - ttf
+          - json
+          - xml
+          - svg
+          - otf
+          isFrameworkApk: false
+          packageInfo:
+            forcedPackageId: '127'
+            renameManifestPackage: null
+          sdkInfo:
+            minSdkVersion: '24'
+            targetSdkVersion: '36'
+          sharedLibrary: false
+          unknownFiles: {}
+          usesFramework:
+            ids:
+            - 1
+            tag: null
+          version: 2.9.3
+          versionInfo:
+            versionCode: '10907'
+            versionName: 1.9.7
+          EOF
+      
+      - name: Build APK with apktool
+        run: |
+          apktool b resources/ -o app-unsigned.apk
       
       - name: Generate debug keystore
         run: |
@@ -95,17 +94,14 @@ jobs:
         run: |
           jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
             -keystore debug.keystore -storepass android \
-            -keypass android build/app-unsigned.apk androiddebugkey
+            -keypass android app-unsigned.apk androiddebugkey
           
-          mv build/app-unsigned.apk app-signed.apk
+          mv app-unsigned.apk app-signed.apk
       
       - name: Verify APK
         run: |
           echo "APK size:"
           ls -lh app-signed.apk
-          
-          echo "APK contents:"
-          unzip -l app-signed.apk | head -20
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
