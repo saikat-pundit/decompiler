@@ -31,12 +31,12 @@ jobs:
           sudo apt-get install -y -qq android-sdk apksigner || echo "Installed"
       
       # ============================================
-      # FIX: Override armv7_split manifest
+      # FIX: Override armv7_split manifest AND apktool.yml
       # ============================================
       - name: Fix armv7_split manifest
         run: |
           if [ -d "decompiled/armv7_split" ]; then
-            echo "🔧 Fixing armv7_split/AndroidManifest.xml..."
+            echo "🔧 Fixing armv7_split/AndroidManifest.xml and apktool.yml..."
             
             # Override AndroidManifest.xml
             cat > decompiled/armv7_split/AndroidManifest.xml << 'EOF'
@@ -57,7 +57,7 @@ jobs:
           </manifest>
           EOF
             
-            # Override apktool.yml
+            # Override apktool.yml - NO QUOTES around numbers!
             cat > decompiled/armv7_split/apktool.yml << 'EOF'
           version: 2.0.0
           apkFileName: armv7_split.apk
@@ -66,12 +66,12 @@ jobs:
             ids:
             - 1
           sdkInfo:
-            minSdkVersion: "21"
-            targetSdkVersion: "30"
+            minSdkVersion: 21
+            targetSdkVersion: 30
           packageInfo:
-            forcedPackageId: "127"
+            forcedPackageId: 127
           versionInfo:
-            versionCode: "1"
+            versionCode: 1
             versionName: "1.0"
           compressionType: false
           sharedLibrary: false
@@ -81,9 +81,8 @@ jobs:
             
             echo "✅ Fixed armv7_split manifest and apktool.yml"
             
-            # Verify the fix
-            echo "📂 armv7_split/AndroidManifest.xml:"
-            cat decompiled/armv7_split/AndroidManifest.xml
+            echo "📂 armv7_split/apktool.yml:"
+            cat decompiled/armv7_split/apktool.yml
           else
             echo "⚠️ armv7_split directory not found, skipping fix"
           fi
